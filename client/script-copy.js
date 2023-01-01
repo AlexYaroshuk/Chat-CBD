@@ -18,12 +18,12 @@ function loader(element) {
 }
 
 function typeText(element, text) {
-  let index = 0
+  let index = 0;
 
   let interval = setInterval(() => {
 
     if(index < text.length) {
-      element.innerHTML += text.charAt(index)
+      element.innerHTML += text.charAt(index);
       index++
     } else {
       clearInterval(interval)
@@ -80,7 +80,7 @@ const handleSubmit = async(e) => {
   const response = await fetch('https://chat-cbd.onrender.com/', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
    body: JSON.stringify({
     prompt: data.get('prompt')
@@ -106,7 +106,7 @@ const handleSubmit = async(e) => {
 
 form.addEventListener('submit', handleSubmit)
 form.addEventListener('keyup', (e) => {
-  if (e.keyCode === 13) {
+  if (e.keycode === 13) {
     handleSubmit(e)
   }
 })
