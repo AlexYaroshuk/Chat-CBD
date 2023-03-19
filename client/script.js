@@ -53,7 +53,7 @@ function chatStripe(
   uniqueId,
   isConversationListItem = false
 ) {
-  const aiClass = isAi ? 'ai' : '';
+
   const listItemClass = isConversationListItem
     ? 'conversation-list-item'
     : '';
