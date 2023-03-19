@@ -1,112 +1,181 @@
-import bot from './assets/bot.svg';
-import user from './assets/user.svg';
-
-const form = document.querySelector('form');
+const form = document.getElementById('chat-form');
 const chatContainer = document.querySelector('#chat_container');
+let history = [];
+
+try {
+  const storedHistory = localStorage.getItem('history');
+  if (storedHistory) {
+    history = JSON.parse(storedHistory);
+    for (const message of history) {
+      const isAi = message.startsWith('AI:');
+      const value = message.substring(4);
+      chatContainer.innerHTML += chatStripe(isAi, value);
+    }
+  }
+} catch (error) {
+  console.error(error);
+}
 
 let loadInterval;
 
 function loader(element) {
-  element.textContent =''
-
+  element.textContent = '';
   loadInterval = setInterval(() => {
-    element.textContent += '.'
+    element.textContent += '.';
     if (element.textContent === '....') {
-      element.textContent =''
+      element.textContent = '';
     }
-  }, 300)
+  }, 300);
 }
 
 function typeText(element, text) {
-  let index = 0
-
+  let index = 0;
   let interval = setInterval(() => {
-
-    if(index < text.length) {
-      element.innerHTML += text.charAt(index)
-      index++
+    if (index < text.length) {
+      element.innerHTML += text.charAt(index);
+      index++;
     } else {
-      clearInterval(interval)
+      clearInterval(interval);
     }
-  }, 20)
+  }, 1);
 }
 
 function generateUniqueId() {
-  const timestamp = Date.now()
-  const randomNumber = Math.random()
-  const hexadecimalString = randomNumber.toString(16)
-
-  return `id-${timestamp}-${hexadecimalString}`
+  const timestamp = Date.now();
+  const randomNumber = Math.random();
+  const hexadecimalString = randomNumber.toString(16);
+  return `id-${timestamp}-${hexadecimalString}`;
 }
 
-function chatStripe(isAi, value, uniqueId) {
-  return(
-  `
-  <div class ="wrapper ${isAi && 'ai'}">
-    <div class="chat">
-      <div class="profile">
-        <img
-          src=${isAi ? bot : user}
-          alt="${isAi ? 'bot' : 'user'}"
+function chatStripe(
+  isAi,
+  value,
+  uniqueId,
+  isConversationListItem = false
+) {
+  const aiClass = isAi ? 'ai' : '';
+  const listItemClass = isConversationListItem
+    ? 'conversation-list-item'
+    : '';
+
+  return `
+    <div class="wrapper ${aiClass} ${listItemClass}">
+      <div class="chat">
+        <div class="profile">
+          <img
+            src=${isAi ? './assets/bot.svg' : './assets/user.svg'}
+            alt="${isAi ? 'bot' : 'user'}"
           />
+        </div>
+        <div class="message" id=${uniqueId}>${value}</div>
       </div>
-      <div class="message" id=${uniqueId}>${value}</div>
     </div>
-    
-    `
-  )
+  `;
 }
 
-const handleSubmit = async(e) => {
+function renderConversationList() {
+  const conversationList = document.getElementById('conversation-list');
+  conversationList.innerHTML = '';
+  for (const message of history) {
+    const isAi = message.startsWith('AI:');
+    const value = message.substring(4);
+    conversationList.innerHTML += chatStripe(
+      isAi,
+      value,
+      null,
+      true
+    );
+  }
+}
+
+
+
+
+const handleSubmit = async (e) => {
   e.preventDefault();
 
   const data = new FormData(form);
+  const userPrompt = data.get('prompt');
+
+  // Add the user's message to the history array
+  history.push(`User: ${userPrompt}`);
 
   // user's chatStripe
-  chatContainer.innerHTML += chatStripe(false, data.get('prompt'))
+  chatContainer.innerHTML += chatStripe(false, userPrompt);
 
-  form.reset()
+  form.reset();
 
   // bot's chatStripe
-  const uniqueId = generateUniqueId()
-  chatContainer.innerHTML += chatStripe(true, '', uniqueId)
+  const uniqueId = generateUniqueId();
+  chatContainer.innerHTML += chatStripe(true, '', uniqueId);
 
-  chatContainer.scrollTop = chatContainer.scrollHeight
+  chatContainer.scrollTop = chatContainer.scrollHeight;
 
-  const messageDiv = document.getElementById(uniqueId)
+  const messageDiv = document.getElementById(uniqueId);
 
-  loader(messageDiv)
+  loader(messageDiv);
 
-  const response = await fetch('https://chat-cbd.onrender.com/', {
+  const response = await fetch('http://localhost:5000/', {
+
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
-   body: JSON.stringify({
-    prompt: data.get('prompt')
-   }) 
-  })
+    body: JSON.stringify({
+      prompt: userPrompt,
+      history: history
+    })
+  });
 
-  clearInterval(loadInterval)
-  messageDiv.innerHTML = ''
+  clearInterval(loadInterval);
+  messageDiv.innerHTML = '';
 
   if (response.ok) {
-    const data = await response.json()
-    const parsedData = data.bot.trim()
+    const data = await response.json();
+    const parsedData = data.bot.trim();
 
-    typeText(messageDiv, parsedData)
-  } else {
-    const err = await response.text()
+    // Add the bot's response to the history array
+    history.push(`AI: ${parsedData}`);
 
-    messageDiv.innerHTML = 'Something went wrong'
+    typeText(messageDiv, parsedData);
+    // Update the conversation list
 
-    alert(err)
   }
+
+  try {
+    localStorage.setItem('history', JSON.stringify(history));
+  } catch (error) {
+    console.error(error);
+  }
+
+
 }
 
-form.addEventListener('submit', handleSubmit)
-form.addEventListener('keyup', (e) => {
+
+
+form.onsubmit = handleSubmit;
+
+const promptInput = document.querySelector('textarea[name="prompt"]');
+
+promptInput.addEventListener('keydown', (e) => {
   if (e.keyCode === 13) {
-    handleSubmit(e)
+    handleSubmit(e);
   }
-})
+});
+
+
+
+const clearHistoryBtn = document.getElementById('clear-history-btn');
+
+clearHistoryBtn.addEventListener('click', () => {
+  history = [];
+  try {
+    localStorage.removeItem('history');
+  } catch (error) {
+    console.error(error);
+  }
+  chatContainer.innerHTML = '';
+  renderConversationList();
+});
+
+
