@@ -148,3 +148,19 @@ form img {
   width: 30px;
   height: 30px;
 }
+
+#clear-history-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: #40414F;
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 1;
+}
