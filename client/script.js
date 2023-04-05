@@ -83,6 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ... other code
 
+
   // Add event listeners to conversation list items
   function addConversationClickEventListeners() {
     const items = document.querySelectorAll(".conversation-list-item");
@@ -91,6 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
         event.preventDefault();
         setActiveConversationStyle(item.dataset.conversationId);
         localStorage.setItem("activeConversation", item.dataset.conversationId);
+
 
         // Your logic for loading conversation content goes here
       });
