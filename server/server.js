@@ -25,10 +25,11 @@ app.get('/', async (req, res) => {
 app.post('/', async (req, res) => {
     try {
         const prompt = req.body.prompt;
-        const history = req.body.history;
+        const chatHistory = req.body.chatHistory || [];
 
-        // Combine history with the latest prompt
-        const fullPrompt = `${history.join("\n")}\nUser: ${prompt}\nAI: `;
+
+        // Combine chatHistory with the latest prompt
+        const fullPrompt = `${chatHistory.join("\n")}\nUser: ${prompt}\nAI: `;
 
         const response = await openai.createCompletion({
             model: "text-davinci-003",
