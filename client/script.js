@@ -364,7 +364,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const FETCH_TIMEOUT = 15000; // 10 seconds
 
       const response = await fetchWithTimeout(
-        "http://localhost:5000",
+        "https://chat-cbd.onrender.com",
         {
           method: "POST",
           headers: {
