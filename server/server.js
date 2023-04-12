@@ -27,13 +27,13 @@ app.post("/", async (req, res) => {
     const prompt = req.body.prompt;
     const chatHistory = req.body.chatHistory || [];
 
-    // Combine chatHistory with the latest prompt
-    const fullPrompt = `${chatHistory.join("\n")}\nUser: ${prompt}\nAI: `;
+    // Add the user's message to the chatHistory array
+    chatHistory.push({ role: "user", content: prompt });
 
-    const response = await openai.createCompletion({
-      model: "text-davinci-003",
-      prompt: fullPrompt,
-      temperature: 0,
+    const response = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      prompt: chatHistory,
+      temperature: 0.5,
       max_tokens: 2000,
       top_p: 1,
       frequency_penalty: 0.5,
