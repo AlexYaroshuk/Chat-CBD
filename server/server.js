@@ -28,7 +28,7 @@ app.post("/", async (req, res) => {
     const chatHistory = req.body.chatHistory || [];
 
     // Combine chatHistory with the latest prompt
-    const fullPrompt = `${conversation.join("\n")}\nUser: ${prompt}\nAI: `;
+    const fullPrompt = `${chatHistory.join("\n")}\nUser: ${prompt}\nAI: `;
 
     const response = await openai.createCompletion({
       model: "text-davinci-003",
@@ -41,9 +41,6 @@ app.post("/", async (req, res) => {
     });
 
     const botResponse = response.data.choices[0].text.trim();
-
-    // Store the user's message and the bot's response in the conversation array
-    conversation.push(`User: ${prompt}`, `AI: ${botResponse}`);
 
     res.status(200).send({
       bot: botResponse,
