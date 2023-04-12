@@ -24,11 +24,7 @@ app.get("/", async (req, res) => {
 
 app.post("/", async (req, res) => {
   try {
-    const prompt = req.body.prompt;
     const chatHistory = req.body.chatHistory || [];
-
-    // Add the user's message to the chatHistory array
-    chatHistory.push({ role: "user", content: prompt });
 
     const response = await openai.createChatCompletion({
       model: "gpt-3.5-turbo",
