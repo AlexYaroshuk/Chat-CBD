@@ -42,7 +42,14 @@ app.post("/", async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).send({ error }, messages);
+    const { response } = error; // extract the API response from the error object
+    let errorMessage = "An unknown error occurred";
+
+    if (response && response.data && response.data.error) {
+      errorMessage = response.data.error.message;
+    }
+
+    res.status(500).send({ error: errorMessage });
   }
 });
 
