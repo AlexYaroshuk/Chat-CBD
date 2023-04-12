@@ -47,7 +47,7 @@ app.post("/", async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).send({ error });
+    res.status(500).send({ error }, messages);
   }
 });
 
