@@ -24,7 +24,7 @@ app.get("/", async (req, res) => {
 
 app.post("/", async (req, res) => {
   try {
-    const chatHistory = req.body.chatHistory || [];
+    const chatHistory = req.body.chatHistory;
 
     const response = await openai.createChatCompletion({
       model: "gpt-3.5-turbo",
