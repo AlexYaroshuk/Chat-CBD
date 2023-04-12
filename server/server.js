@@ -21,37 +21,45 @@ app.get("/", async (req, res) => {
   res.status(200).send({ message: "hello" });
 });
 
-app.post("/", async (req, res) => {
-  try {
-    const chatHistory = req.body.chatHistory;
+try {
+  app.post("/", async (req, res) => {
+    try {
+      const chatHistory = req.body.chatHistory;
+      console.log("Request payload:", req.body);
 
-    const response = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: chatHistory,
-      temperature: 0.5,
-      max_tokens: 2000,
-      top_p: 1,
-      frequency_penalty: 0.5,
-      presence_penalty: 0,
-    });
+      const response = await openai.createChatCompletion({
+        model: "gpt-3.5-turbo",
+        messages: chatHistory,
+        temperature: 0.5,
+        max_tokens: 2000,
+        top_p: 1,
+        frequency_penalty: 0.5,
+        presence_penalty: 0,
+      });
 
-    const botResponse = response.data.choices[0].text.trim();
+      console.log("OpenAI API response:", response); // Log the API response
 
-    res.status(200).send({
-      bot: botResponse,
-    });
-  } catch (error) {
-    console.error(error);
-    const { response } = error; // extract the API response from the error object
-    let errorMessage = "An unknown error occurred";
+      const botResponse = response.data.choices[0].text.trim();
 
-    if (response && response.data && response.data.error) {
-      errorMessage = response.data.error.message;
+      res.status(200).send({
+        bot: botResponse,
+      });
+    } catch (error) {
+      console.error(error);
+      const { response } = error; // extract the API response from the error object
+      let errorMessage = "An unknown error occurred";
+
+      if (response && response.data && response.data.error) {
+        errorMessage = response.data.error.message;
+      }
+
+      res.status(500).send({ error: errorMessage });
     }
-
-    res.status(500).send({ error: errorMessage });
-  }
-});
+  });
+} catch (error) {
+  console.error("Unhandled error:", error); // Log the unhandled error
+  res.status(500).send({ error: "An unknown error occurred" });
+}
 
 app.listen(process.env.PORT || 5000, () =>
   console.log(
