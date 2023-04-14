@@ -39,7 +39,7 @@ try {
 
       console.log("OpenAI API response:", response); // Log the API response
 
-      const botResponse = response.data.choices[0].text.trim();
+      const botResponse = response.data.choices[0].message.content.trim();
 
       res.status(200).send({
         bot: botResponse,
