@@ -22,10 +22,12 @@ app.get("/", async (req, res) => {
 });
 
 try {
-  app.post("/", async (req, res) => {
+  app.post("/send-message", async (req, res) => {
     try {
-      const chatHistory = req.body.chatHistory;
+      const { conversationId, message } = req.body;
       console.log("Request payload:", req.body);
+
+      const chatHistory = [message];
 
       const response = await openai.createChatCompletion({
         model: "gpt-3.5-turbo",
@@ -37,7 +39,7 @@ try {
         presence_penalty: 0,
       });
 
-      console.log("OpenAI API response:", response); // Log the API response
+      console.log("OpenAI API response:", response);
 
       const botResponse = response.data.choices[0].message.content.trim();
 
@@ -46,7 +48,7 @@ try {
       });
     } catch (error) {
       console.error(error);
-      const { response } = error; // extract the API response from the error object
+      const { response } = error;
       let errorMessage = "An unknown error occurred";
 
       if (response && response.data && response.data.error) {
