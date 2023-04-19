@@ -43,8 +43,12 @@ try {
 
       const botResponse = response.data.choices[0].message.content.trim();
 
+      // Add the bot's response to the chatHistory
+      chatHistory.push({ role: "system", content: botResponse });
+
       res.status(200).send({
         bot: botResponse,
+        chatHistory: chatHistory,
       });
     } catch (error) {
       console.error(error);
