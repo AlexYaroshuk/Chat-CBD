@@ -43,6 +43,7 @@ try {
 
       res.status(200).send({
         bot: botResponse,
+        chatHistory: [...messages, { role: "system", content: botResponse }],
       });
     } catch (error) {
       console.error(error);
