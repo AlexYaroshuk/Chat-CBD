@@ -24,14 +24,12 @@ app.get("/", async (req, res) => {
 try {
   app.post("/send-message", async (req, res) => {
     try {
-      const { conversationId, message } = req.body;
+      const { messages } = req.body; // Receive the 'messages' object
       console.log("Request payload:", req.body);
-
-      const chatHistory = [message];
 
       const response = await openai.createChatCompletion({
         model: "gpt-3.5-turbo",
-        messages: chatHistory,
+        messages: messages, // Use the 'messages' object directly
         temperature: 0.5,
         max_tokens: 2000,
         top_p: 1,
@@ -43,12 +41,8 @@ try {
 
       const botResponse = response.data.choices[0].message.content.trim();
 
-      // Add the bot's response to the chatHistory
-      chatHistory.push({ role: "system", content: botResponse });
-
       res.status(200).send({
         bot: botResponse,
-        chatHistory: chatHistory,
       });
     } catch (error) {
       console.error(error);
