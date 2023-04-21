@@ -55,6 +55,7 @@ try {
 
         res.status(200).send({
           bot: imageUrl,
+          isImage: true,
           chatHistory: [
             ...messages,
             { role: "system", content: "", images: [imageUrl] },
@@ -77,6 +78,7 @@ try {
 
         res.status(200).send({
           bot: botResponse,
+          isImage: false,
           chatHistory: [...messages, { role: "system", content: botResponse }],
         });
       }
