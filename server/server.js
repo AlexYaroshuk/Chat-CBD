@@ -13,12 +13,9 @@ const configuration = new Configuration({
 
 const openai = new OpenAIApi(configuration);
 
-const allowedOrigins = [
-  "https://chat-cbd-test.vercel.app",
-  "http://localhost:*",
-];
+app.use(cors());
 
-const corsOptions = {
+/* const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
@@ -31,7 +28,7 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-app.use(cors(corsOptions));
+app.use(cors(corsOptions)); */
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
@@ -42,8 +39,6 @@ app.get("/", async (req, res) => {
 
 try {
   app.post("/send-message", async (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-
     try {
       const { messages, isImage } = req.body; // Receive the 'messages' object and 'isImage' flag
       console.log("Request payload:", req.body);
