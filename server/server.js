@@ -44,7 +44,7 @@ try {
       console.log("Request payload:", req.body);
 
       if (isImage) {
-        const imageResponse = await openai.createImageGeneration({
+        const imageResponse = await openai.createImage({
           prompt: messages[messages.length - 1].content,
           n: 1,
           size: "512x512",
