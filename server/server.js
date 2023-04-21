@@ -15,7 +15,7 @@ const openai = new OpenAIApi(configuration);
 
 const allowedOrigins = [
   "https://chat-cbd-test.vercel.app",
-  "http://localhost:5173/",
+  "http://localhost:*",
 ];
 
 const corsOptions = {
@@ -42,6 +42,8 @@ app.get("/", async (req, res) => {
 
 try {
   app.post("/send-message", async (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+
     try {
       const { messages, isImage } = req.body; // Receive the 'messages' object and 'isImage' flag
       console.log("Request payload:", req.body);
