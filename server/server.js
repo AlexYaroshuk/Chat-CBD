@@ -47,7 +47,7 @@ try {
         const imageResponse = await openai.createImage({
           prompt: messages[messages.length - 1].content,
           n: 1,
-          size: "512x512",
+          size: "256x256",
           response_format: "url",
         });
 
