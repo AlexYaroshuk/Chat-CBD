@@ -2,7 +2,9 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { Configuration, OpenAIApi } from "openai";
-import * as admin from "firebase-admin";
+import admin from "firebase-admin";
+import "firebase/storage";
+
 import fetch from "node-fetch";
 import FormData from "form-data";
 import { v4 as uuidv4 } from "uuid";
