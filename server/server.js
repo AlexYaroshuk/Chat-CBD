@@ -36,18 +36,12 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
 
-app.get("/", async (req, res) => {
-  res.set("Access-Control-Allow-Origin", "*");
-  res.status(200).send({ message: "hello" });
-});
-
 try {
   app.post("/send-message", async (req, res) => {
     try {
-      const { messages, isImage } = req.body; // Receive the 'messages' object and 'isImage' flag
-      console.log("Request payload:", req.body);
+      const { messages, type } = req.body;
 
-      if (isImage) {
+      if (type === "image") {
         const imageResponse = await openai.createImage({
           prompt: messages[messages.length - 1].content,
           n: 1,
@@ -59,7 +53,7 @@ try {
 
         res.status(200).send({
           bot: imageUrl,
-          isImage: true,
+          type: "image",
           chatHistory: [
             ...messages,
             { role: "system", content: "", images: [imageUrl] },
@@ -82,7 +76,7 @@ try {
 
         res.status(200).send({
           bot: botResponse,
-          isImage: false,
+          type: "text",
           chatHistory: [...messages, { role: "system", content: botResponse }],
         });
       }
