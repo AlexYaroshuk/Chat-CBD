@@ -5,7 +5,6 @@ import { Configuration, OpenAIApi } from "openai";
 import * as admin from "firebase-admin";
 import fetch from "node-fetch";
 import FormData from "form-data";
-import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 
