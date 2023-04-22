@@ -9,7 +9,7 @@ import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 
-const serviceAccountPath = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT";
+const serviceAccountPath = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT.json";
 const serviceAccountContent = fs.readFileSync(serviceAccountPath, "utf-8");
 const serviceAccount = JSON.parse(serviceAccountContent);
 
