@@ -7,10 +7,11 @@ import fetch from "node-fetch";
 import FormData from "form-data";
 import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
+import fs from "fs";
 
-const serviceAccount = JSON.parse(
-  Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString("ascii")
-);
+const serviceAccountPath = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT";
+const serviceAccountContent = fs.readFileSync(serviceAccountPath, "utf-8");
+const serviceAccount = JSON.parse(serviceAccountContent);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
