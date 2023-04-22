@@ -2,6 +2,20 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { Configuration, OpenAIApi } from "openai";
+import * as admin from "firebase-admin";
+import fetch from "node-fetch";
+import FormData from "form-data";
+import fs from "fs";
+import { v4 as uuidv4 } from "uuid";
+
+const serviceAccount = JSON.parse(
+  Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString("ascii")
+);
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+});
 
 dotenv.config();
 
@@ -34,12 +48,56 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+async function uploadImageToFirebase(imageUrl) {
+  try {
+    const response = await fetch(imageUrl);
+    const buffer = await response.buffer();
+    const uniqueId = uuidv4();
+    const fileExtension = imageUrl.split(".").pop().split("?")[0];
+    const filename = `${uniqueId}.${fileExtension}`;
+
+    const file = admin.storage().bucket().file(filename);
+    const writeStream = file.createWriteStream({
+      metadata: {
+        contentType: response.headers.get("content-type"),
+      },
+    });
+
+    const uploadPromise = new Promise((resolve, reject) => {
+      writeStream.on("error", (error) => reject(error));
+      writeStream.on("finish", () => {
+        file.getSignedUrl(
+          {
+            action: "read",
+            expires: "03-17-2025",
+          },
+          (error, url) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(url);
+            }
+          }
+        );
+      });
+    });
+
+    writeStream.end(buffer);
+
+    const uploadedImageUrl = await uploadPromise;
+    return uploadedImageUrl;
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    throw error;
+  }
+}
+
 const PORT = process.env.PORT || 5000;
 
 try {
   app.post("/send-message", async (req, res) => {
     try {
-      const { messages, type } = req.body;
+      const { messages, type, activeConversation } = req.body;
 
       if (type === "image") {
         const imageResponse = await openai.createImage({
@@ -50,15 +108,28 @@ try {
         });
 
         const imageUrl = imageResponse.data.data[0].url;
+        const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
+
+        const updatedChatHistory = [
+          ...messages,
+          {
+            role: "system",
+            content: "",
+            images: [uploadedImageUrl],
+            type: "image",
+          },
+        ];
+
+        await saveConversationToFirebase({
+          id: activeConversation,
+          messages: updatedChatHistory,
+        });
 
         res.status(200).send({
           bot: "",
           type: "image",
-          images: [imageUrl],
-          chatHistory: [
-            ...messages,
-            { role: "system", content: "", images: [imageUrl] },
-          ],
+          images: [uploadedImageUrl],
+          chatHistory: updatedChatHistory,
         });
       } else {
         const response = await openai.createChatCompletion({
@@ -75,10 +146,20 @@ try {
 
         const botResponse = response.data.choices[0].message.content.trim();
 
+        const updatedChatHistory = [
+          ...messages,
+          { role: "system", content: botResponse, type: "text" },
+        ];
+
+        await saveConversationToFirebase({
+          id: activeConversation,
+          messages: updatedChatHistory,
+        });
+
         res.status(200).send({
           bot: botResponse,
           type: "text",
-          chatHistory: [...messages, { role: "system", content: botResponse }],
+          chatHistory: updatedChatHistory,
         });
       }
     } catch (error) {
@@ -96,6 +177,20 @@ try {
 } catch (error) {
   console.error("Unhandled error:", error); // Log the unhandled error
   res.status(500).send({ error: "An unknown error occurred" });
+}
+
+async function saveConversationToFirebase(conversation) {
+  try {
+    const db = admin.firestore();
+    const conversationsRef = db.collection("conversations");
+    const docRef = conversationsRef.doc(conversation.id);
+
+    await docRef.set(conversation);
+
+    console.log(`Conversation ${conversation.id} saved to Firebase.`);
+  } catch (error) {
+    console.error("Error saving conversation to Firebase:", error);
+  }
 }
 
 app.listen(process.env.PORT || 5000, () =>
