@@ -52,14 +52,14 @@ try {
         const imageUrl = imageResponse.data.data[0].url;
 
         res.status(200).send({
-  bot: JSON.stringify([imageUrl]),
-  type: "image",
-  chatHistory: [
-    ...messages,
-    { role: "system", content: "", images: [imageUrl] },
-  ],
-});
-
+          bot: "",
+          type: "image",
+          images: [imageUrl],
+          chatHistory: [
+            ...messages,
+            { role: "system", content: "", images: [imageUrl] },
+          ],
+        });
       } else {
         const response = await openai.createChatCompletion({
           model: "gpt-3.5-turbo",
