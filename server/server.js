@@ -13,9 +13,12 @@ const configuration = new Configuration({
 
 const openai = new OpenAIApi(configuration);
 
-app.use(cors());
+const allowedOrigins = [
+  "https://chat-cbd-test.vercel.app",
+  "https://localhost:*",
+];
 
-/* const corsOptions = {
+const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
@@ -28,7 +31,7 @@ app.use(cors());
   optionsSuccessStatus: 200,
 };
 
-app.use(cors(corsOptions)); */
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
