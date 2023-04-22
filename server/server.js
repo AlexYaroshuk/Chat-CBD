@@ -37,6 +37,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 5000;
 
 app.get("/", async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
   res.status(200).send({ message: "hello" });
 });
 
