@@ -15,7 +15,7 @@ const openai = new OpenAIApi(configuration);
 
 const allowedOrigins = [
   "https://chat-cbd-test.vercel.app",
-  "https://localhost:*",
+  "*://localhost:*/*",
 ];
 
 const corsOptions = {
