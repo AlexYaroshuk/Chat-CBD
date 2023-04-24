@@ -8,7 +8,7 @@ import FormData from "form-data";
 import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 
-const serviceAccountPath = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT.json";
+const serviceAccountPath = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT";
 const serviceAccountContent = fs.readFileSync(serviceAccountPath, "utf-8");
 const serviceAccount = JSON.parse(serviceAccountContent);
 
