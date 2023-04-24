@@ -2,7 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { Configuration, OpenAIApi } from "openai";
-import * as admin from "firebase-admin";
+const admin = require("firebase-admin");
+
 import fetch from "node-fetch";
 import FormData from "form-data";
 import fs from "fs";
