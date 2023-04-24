@@ -2,6 +2,9 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { Configuration, OpenAIApi } from "openai";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
 const admin = require("firebase-admin");
 
 import fetch from "node-fetch";
