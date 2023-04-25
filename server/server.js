@@ -21,7 +21,7 @@ dotenv.config();
 const app = admin.initializeApp({
   projectId: "project-12d32",
   storageBucket: "default-bucket",
-  credential: admin.credential.applicationDefault(),
+  credential: admin.credential.cert(serviceAccount),
 });
 
 const configuration = new Configuration({
