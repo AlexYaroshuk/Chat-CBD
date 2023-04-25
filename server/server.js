@@ -16,14 +16,13 @@ const serviceAccountPath = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT";
 const serviceAccountContent = fs.readFileSync(serviceAccountPath, "utf-8");
 const serviceAccount = JSON.parse(serviceAccountContent);
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-});
-
 dotenv.config();
 
-const app = express();
+const app = admin.initializeApp({
+  projectId: "project-12d32",
+  storageBucket: "default-bucket",
+  credential: admin.credential.applicationDefault(),
+});
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
