@@ -22,6 +22,7 @@ admin.initializeApp({
 });
 
 dotenv.config();
+console.log("Firebase Storage Bucket:", process.env.FIREBASE_STORAGE_BUCKET);
 
 const app = express();
 
@@ -187,13 +188,11 @@ try {
     errorMessage = response.data.error.message;
   }
 
-  res
-    .status(500)
-    .send({
-      error: errorMessage,
-      statusCode: response.status,
-      statusText: response.statusText,
-    }); // Add statusCode and statusText
+  res.status(500).send({
+    error: errorMessage,
+    statusCode: response.status,
+    statusText: response.statusText,
+  }); // Add statusCode and statusText
 }
 
 async function saveConversationToFirebase(conversation) {
