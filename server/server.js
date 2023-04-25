@@ -61,8 +61,8 @@ async function uploadImageToFirebase(imageUrl) {
     const filename = `${uniqueId}.${fileExtension}`;
 
     const storage = admin.storage();
-    const bucket = storage.bucket(process.env.FIREBASE_STORAGE_BUCKET);
-    const file = bucket.file(filename);
+    const storageBucket = storage.bucket(process.env.FIREBASE_STORAGE_BUCKET);
+    const file = storageBucket.file(filename);
 
     const writeStream = file.createWriteStream({
       metadata: {
