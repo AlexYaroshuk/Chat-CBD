@@ -22,7 +22,6 @@ admin.initializeApp({
 });
 
 dotenv.config();
-console.log("Firebase Storage Bucket:", process.env.FIREBASE_STORAGE_BUCKET);
 
 const app = express();
 
@@ -61,7 +60,10 @@ async function uploadImageToFirebase(imageUrl) {
     const fileExtension = imageUrl.split(".").pop().split("?")[0];
     const filename = `${uniqueId}.${fileExtension}`;
 
-    const file = admin.storage().bucket().file(filename);
+    const storage = admin.storage();
+    const bucket = storage.bucket(process.env.FIREBASE_STORAGE_BUCKET);
+    const file = bucket.file(filename);
+
     const writeStream = file.createWriteStream({
       metadata: {
         contentType: response.headers.get("content-type"),
