@@ -134,6 +134,7 @@ try {
           images: [uploadedImageUrl],
           chatHistory: updatedChatHistory,
         });
+        console.log("after 1", updatedChatHistory);
       } else {
         const response = await openai.createChatCompletion({
           model: "gpt-3.5-turbo",
@@ -159,7 +160,9 @@ try {
           type: "text",
           chatHistory: updatedChatHistory,
         });
+        console.log("after 2nd", updatedChatHistory);
       }
+      console.log("before 3", updatedChatHistory);
       await saveConversationToFirebase(
         { id: activeConversation, messages: updatedChatHistory },
         userId,
