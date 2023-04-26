@@ -102,6 +102,7 @@ try {
   app.post("/send-message", async (req, res) => {
     try {
       const { messages, type, activeConversation } = req.body;
+      const userId = req.body.userId;
 
       if (type === "image") {
         const imageResponse = await openai.createImage({
@@ -155,16 +156,17 @@ try {
           { role: "system", content: botResponse, type: "text" },
         ];
 
-        await saveConversationToFirebase({
-          id: activeConversation,
-          messages: updatedChatHistory,
+        try {
+          await saveConversationToFirebase(conversation, userId);
+          res.status(200).send("Conversation saved to Firebase.");
+        } catch (error) {
+          res.status(500).send("Error saving conversation to Firebase.");
+        }
+        res.status(200).send({
+          bot: botResponse,
+          type: "text",
+          chatHistory: updatedChatHistory,
         });
-        console.log("saving these:", activeConversation, updatedChatHistory),
-          res.status(200).send({
-            bot: botResponse,
-            type: "text",
-            chatHistory: updatedChatHistory,
-          });
       }
     } catch (error) {
       console.error(error);
@@ -194,11 +196,11 @@ try {
   }); // Add statusCode and statusText
 }
 
-async function saveConversationToFirebase(conversation) {
+async function saveConversationToFirebase(conversation, userId) {
   console.log(conversation);
   try {
     const db = admin.firestore();
-    const conversationsRef = db.collection("conversations");
+    const conversationsRef = db.collection(`users/${userId}/conversations`);
     const docRef = conversationsRef.doc(conversation.id);
 
     await docRef.set(conversation);
