@@ -88,7 +88,11 @@ async function uploadImageToFirebase(imageUrl) {
 
     writeStream.end(buffer);
 
-    const uploadedImageUrl = await uploadPromise;
+    const uploadedImageUrl = await uploadPromise.catch((error) => {
+      console.error("Error uploading image:", error);
+      throw error;
+    });
+
     return uploadedImageUrl;
   } catch (error) {
     console.error("Error uploading image:", error);
@@ -159,7 +163,8 @@ try {
       try {
         await saveConversationToFirebase(
           { id: activeConversation, messages: updatedChatHistory },
-          userId
+          userId,
+          updatedChatHistory
         );
       } catch (error) {
         console.error("Error saving conversation to Firebase:", error);
@@ -174,7 +179,7 @@ try {
         errorMessage = response.data.error.message;
       }
 
-      res.status(500).send({ error: errorMessage });
+      next(error);
     }
   });
 } catch (error) {
@@ -203,7 +208,11 @@ app.use((error, req, res, next) => {
   });
 });
 
-async function saveConversationToFirebase(conversation, userId) {
+async function saveConversationToFirebase(
+  conversation,
+  userId,
+  updatedChatHistory
+) {
   console.log("Saving conversation:", conversation);
   try {
     const db = admin.firestore();
