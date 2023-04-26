@@ -124,11 +124,6 @@ try {
           },
         ];
 
-        await saveConversationToFirebase({
-          id: activeConversation,
-          messages: updatedChatHistory,
-        });
-
         res.status(200).send({
           bot: "",
           type: "image",
@@ -155,19 +150,19 @@ try {
           { role: "system", content: botResponse, type: "text" },
         ];
 
-        try {
-          await saveConversationToFirebase(
-            { id: activeConversation, messages: updatedChatHistory },
-            userId
-          );
-        } catch (error) {
-          res.status(500).send("Error saving conversation to Firebase.");
-        }
         res.status(200).send({
           bot: botResponse,
           type: "text",
           chatHistory: updatedChatHistory,
         });
+      }
+      try {
+        await saveConversationToFirebase(
+          { id: activeConversation, messages: updatedChatHistory },
+          userId
+        );
+      } catch (error) {
+        res.status(500).send("Error saving conversation to Firebase.");
       }
     } catch (error) {
       console.error(error);
