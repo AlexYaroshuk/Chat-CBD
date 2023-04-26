@@ -162,7 +162,8 @@ try {
           userId
         );
       } catch (error) {
-        res.status(500).send("Error saving conversation to Firebase.");
+        console.error("Error saving conversation to Firebase:", error);
+        return res.status(500).send("Error saving conversation to Firebase.");
       }
     } catch (error) {
       console.error(error);
@@ -203,13 +204,15 @@ try {
 }
 
 async function saveConversationToFirebase(conversation, userId) {
-  console.log(conversation);
+  console.log("Saving conversation:", conversation);
   try {
     const db = admin.firestore();
     const conversationsRef = db.collection(`users/${userId}/conversations`);
     const docRef = conversationsRef.doc(conversation.id);
 
+    console.log("Before saving to Firebase:", conversation);
     await docRef.set(conversation);
+    console.log("After saving to Firebase:", conversation);
 
     console.log(`Conversation ${conversation.id} saved to Firebase.`);
   } catch (error) {
