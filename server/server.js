@@ -101,8 +101,7 @@ const PORT = process.env.PORT || 5000;
 try {
   app.post("/send-message", async (req, res) => {
     try {
-      const { messages, type, activeConversation } = req.body;
-      const userId = req.body.userId;
+      const { messages, type, activeConversation, userID } = req.body;
 
       if (type === "image") {
         const imageResponse = await openai.createImage({
