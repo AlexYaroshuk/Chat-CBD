@@ -101,7 +101,7 @@ const PORT = process.env.PORT || 5000;
 try {
   app.post("/send-message", async (req, res) => {
     try {
-      const { messages, type, activeConversation, userID } = req.body;
+      const { messages, type, activeConversation, userId } = req.body;
 
       if (type === "image") {
         const imageResponse = await openai.createImage({
@@ -156,7 +156,11 @@ try {
         ];
 
         try {
-          await saveConversationToFirebase(conversation, userId);
+          await saveConversationToFirebase(
+            { id: activeConversation, messages: updatedChatHistory },
+            userId
+          );
+
           res.status(200).send("Conversation saved to Firebase.");
         } catch (error) {
           res.status(500).send("Error saving conversation to Firebase.");
