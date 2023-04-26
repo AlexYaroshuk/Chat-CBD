@@ -159,12 +159,12 @@ try {
           id: activeConversation,
           messages: updatedChatHistory,
         });
-
-        res.status(200).send({
-          bot: botResponse,
-          type: "text",
-          chatHistory: updatedChatHistory,
-        });
+        console.log("saving these:", activeConversation, updatedChatHistory),
+          res.status(200).send({
+            bot: botResponse,
+            type: "text",
+            chatHistory: updatedChatHistory,
+          });
       }
     } catch (error) {
       console.error(error);
@@ -187,16 +187,15 @@ try {
     errorMessage = response.data.error.message;
   }
 
-  res
-    .status(500)
-    .send({
-      error: errorMessage,
-      statusCode: response.status,
-      statusText: response.statusText,
-    }); // Add statusCode and statusText
+  res.status(500).send({
+    error: errorMessage,
+    statusCode: response.status,
+    statusText: response.statusText,
+  }); // Add statusCode and statusText
 }
 
 async function saveConversationToFirebase(conversation) {
+  console.log(conversation);
   try {
     const db = admin.firestore();
     const conversationsRef = db.collection("conversations");
