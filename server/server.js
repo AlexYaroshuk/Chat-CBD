@@ -160,16 +160,11 @@ try {
           chatHistory: updatedChatHistory,
         });
       }
-      try {
-        await saveConversationToFirebase(
-          { id: activeConversation, messages: updatedChatHistory },
-          userId,
-          updatedChatHistory
-        );
-      } catch (error) {
-        console.error("Error saving conversation to Firebase:", error);
-        return res.status(500).send("Error saving conversation to Firebase.");
-      }
+      await saveConversationToFirebase(
+        { id: activeConversation, messages: updatedChatHistory },
+        userId,
+        updatedChatHistory
+      );
     } catch (error) {
       console.error(error);
       const { response } = error;
@@ -178,8 +173,7 @@ try {
       if (response && response.data && response.data.error) {
         errorMessage = response.data.error.message;
       }
-
-      next(error);
+      res.status(500).send({ error: errorMessage });
     }
   });
 } catch (error) {
