@@ -107,6 +107,8 @@ try {
     try {
       const { messages, type, activeConversation, userId } = req.body;
 
+      let updatedChatHistory;
+
       if (type === "image") {
         const imageResponse = await openai.createImage({
           prompt: messages[messages.length - 1].content,
@@ -118,7 +120,7 @@ try {
         const imageUrl = imageResponse.data.data[0].url;
         const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
 
-        const updatedChatHistory = [
+        updatedChatHistory = [
           ...messages,
           {
             role: "system",
@@ -150,7 +152,7 @@ try {
 
         const botResponse = response.data.choices[0].message.content.trim();
 
-        const updatedChatHistory = [
+        updatedChatHistory = [
           ...messages,
           { role: "system", content: botResponse, type: "text" },
         ];
