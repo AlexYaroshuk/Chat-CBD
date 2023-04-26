@@ -185,23 +185,23 @@ try {
   if (response && response.data && response.data.error) {
     errorMessage = response.data.error.message;
   }
-
-  app.use((error, req, res, next) => {
-    console.error(error);
-    const { response } = error;
-    let errorMessage = "An unknown error occurred";
-
-    if (response && response.data && response.data.error) {
-      errorMessage = response.data.error.message;
-    }
-
-    res.status(500).send({
-      error: errorMessage,
-      statusCode: response.status,
-      statusText: response.statusText,
-    });
-  });
 }
+
+app.use((error, req, res, next) => {
+  console.error(error);
+  const { response } = error;
+  let errorMessage = "An unknown error occurred";
+
+  if (response && response.data && response.data.error) {
+    errorMessage = response.data.error.message;
+  }
+
+  res.status(500).send({
+    error: errorMessage,
+    statusCode: response.status,
+    statusText: response.statusText,
+  });
+});
 
 async function saveConversationToFirebase(conversation, userId) {
   console.log("Saving conversation:", conversation);
