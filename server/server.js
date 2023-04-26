@@ -16,13 +16,14 @@ const serviceAccountPath = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT";
 const serviceAccountContent = fs.readFileSync(serviceAccountPath, "utf-8");
 const serviceAccount = JSON.parse(serviceAccountContent);
 
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+});
+
 dotenv.config();
 
-const app = admin.initializeApp({
-  projectId: "project-12d32",
-  storageBucket: "default-bucket",
-  credential: admin.credential.cert(serviceAccount),
-});
+const app = express();
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -59,8 +60,7 @@ async function uploadImageToFirebase(imageUrl) {
     const fileExtension = imageUrl.split(".").pop().split("?")[0];
     const filename = `${uniqueId}.${fileExtension}`;
 
-    const file = storageBucket.file(filename);
-
+    const file = admin.storage().bucket().file(filename);
     const writeStream = file.createWriteStream({
       metadata: {
         contentType: response.headers.get("content-type"),
@@ -187,11 +187,13 @@ try {
     errorMessage = response.data.error.message;
   }
 
-  res.status(500).send({
-    error: errorMessage,
-    statusCode: response.status,
-    statusText: response.statusText,
-  }); // Add statusCode and statusText
+  res
+    .status(500)
+    .send({
+      error: errorMessage,
+      statusCode: response.status,
+      statusText: response.statusText,
+    }); // Add statusCode and statusText
 }
 
 async function saveConversationToFirebase(conversation) {
