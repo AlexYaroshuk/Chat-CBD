@@ -107,6 +107,8 @@ try {
     try {
       const { messages, type, activeConversation, userId } = req.body;
 
+      let newMessage;
+
       if (type === "image") {
         const imageResponse = await openai.createImage({
           prompt: messages[messages.length - 1].content,
@@ -117,6 +119,13 @@ try {
 
         const imageUrl = imageResponse.data.data[0].url;
         const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
+
+        newMessage = {
+          role: "system",
+          content: "",
+          images: [uploadedImageUrl],
+          type: "image",
+        };
 
         res.status(200).send({
           bot: "",
@@ -138,13 +147,25 @@ try {
 
         const botResponse = response.data.choices[0].message.content.trim();
 
+        newMessage = {
+          role: "system",
+          content: botResponse,
+          type: "text",
+        };
+
         res.status(200).send({
           bot: botResponse,
           type: "text",
         });
       }
 
-      await saveConversationToFirebase({ id: activeConversation }, userId);
+      // Update the messages array with the new message
+      const updatedMessages = [...messages, newMessage];
+
+      await saveConversationToFirebase(
+        { id: activeConversation, messages: updatedMessages },
+        userId
+      );
     } catch (error) {
       const { response } = error;
       let errorMessage = "An unknown error occurred";
