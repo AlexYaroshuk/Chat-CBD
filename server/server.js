@@ -111,28 +111,19 @@ try {
 
       if (type === "image") {
         const lastMessage = messages[messages.length - 1];
-        let imageUrls;
-
-        try {
-          const parsedContent = JSON.parse(lastMessage.content);
-          if (parsedContent.images) {
-            imageUrls = parsedContent.images;
-          }
-        } catch (error) {
-          // Not a JSON string, ignore the error
-        }
+        const imageUrls = lastMessage.images || [];
 
         newMessage = {
           role: "system",
           content: "",
-          images: imageUrls || [],
+          images: imageUrls,
           type: "image",
         };
 
         res.status(200).send({
           bot: "",
           type: "image",
-          images: imageUrls || [],
+          images: imageUrls,
         });
       } else {
         const response = await openai.createChatCompletion({
