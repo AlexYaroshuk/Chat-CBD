@@ -134,7 +134,6 @@ try {
           bot: "",
           type: "image",
           images: [uploadedImageUrl],
-          chatHistory: updatedChatHistory,
         });
         console.log("after 1", updatedChatHistory);
       } else {
@@ -160,7 +159,6 @@ try {
         res.status(200).send({
           bot: botResponse,
           type: "text",
-          chatHistory: updatedChatHistory,
         });
         console.log("after 2nd", updatedChatHistory);
       }
