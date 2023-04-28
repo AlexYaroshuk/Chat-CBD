@@ -110,27 +110,29 @@ try {
       let newMessage;
 
       if (type === "image") {
-        const imageResponse = await openai.createImage({
-          prompt: messages[messages.length - 1].content,
-          n: 1,
-          size: "256x256",
-          response_format: "url",
-        });
+        const lastMessage = messages[messages.length - 1];
+        let imageUrls;
 
-        const imageUrl = imageResponse.data.data[0].url;
-        const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
+        try {
+          const parsedContent = JSON.parse(lastMessage.content);
+          if (parsedContent.images) {
+            imageUrls = parsedContent.images;
+          }
+        } catch (error) {
+          // Not a JSON string, ignore the error
+        }
 
         newMessage = {
           role: "system",
           content: "",
-          images: [uploadedImageUrl],
+          images: imageUrls || [],
           type: "image",
         };
 
         res.status(200).send({
           bot: "",
           type: "image",
-          images: [uploadedImageUrl],
+          images: imageUrls || [],
         });
       } else {
         const response = await openai.createChatCompletion({
