@@ -160,10 +160,9 @@ try {
       }
 
       // Update the messages array with the new message
-      const updatedMessages = [...messages, newMessage];
 
       await saveConversationToFirebase(
-        { id: activeConversation, messages: updatedMessages },
+        { id: activeConversation, messages: [...messages, newMessage] },
         userId
       );
     } catch (error) {
