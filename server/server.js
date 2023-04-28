@@ -107,8 +107,6 @@ try {
     try {
       const { messages, type, activeConversation, userId } = req.body;
 
-      let updatedChatHistory;
-
       if (type === "image") {
         const imageResponse = await openai.createImage({
           prompt: messages[messages.length - 1].content,
@@ -120,22 +118,11 @@ try {
         const imageUrl = imageResponse.data.data[0].url;
         const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
 
-        updatedChatHistory = [
-          ...messages,
-          {
-            role: "system",
-            content: "",
-            images: [uploadedImageUrl],
-            type: "image",
-          },
-        ];
-
         res.status(200).send({
           bot: "",
           type: "image",
           images: [uploadedImageUrl],
         });
-        console.log("after 1", updatedChatHistory);
       } else {
         const response = await openai.createChatCompletion({
           model: "gpt-3.5-turbo",
@@ -151,25 +138,14 @@ try {
 
         const botResponse = response.data.choices[0].message.content.trim();
 
-        updatedChatHistory = [
-          ...messages,
-          { role: "system", content: botResponse, type: "text" },
-        ];
-
         res.status(200).send({
           bot: botResponse,
           type: "text",
         });
-        console.log("after 2nd", updatedChatHistory);
       }
-      console.log("before 3", updatedChatHistory);
-      await saveConversationToFirebase(
-        { id: activeConversation, messages: updatedChatHistory },
-        userId,
-        updatedChatHistory
-      );
+
+      await saveConversationToFirebase({ id: activeConversation }, userId);
     } catch (error) {
-      console.error(error);
       const { response } = error;
       let errorMessage = "An unknown error occurred";
 
@@ -180,16 +156,20 @@ try {
     }
   });
 } catch (error) {
-  console.error(error);
-  const { response } = error;
-  let errorMessage = "An unknown error occurred";
+  console.error("Error in /send-message:", error);
 
-  if (response && response.data && response.data.error) {
-    errorMessage = response.data.error.message;
+  let errorMessage = "An unknown error occurred";
+  let statusCode = 500;
+
+  if (error.response && error.response.data && error.response.data.error) {
+    errorMessage = error.response.data.error.message;
+    statusCode = error.response.status || 500;
   }
+
+  res.status(statusCode).send({ error: errorMessage });
 }
 
-app.use((error, req, res, next) => {
+/* app.use((error, req, res, next) => {
   console.error(error);
   const { response } = error;
   let errorMessage = "An unknown error occurred";
@@ -203,13 +183,9 @@ app.use((error, req, res, next) => {
     statusCode: response.status,
     statusText: response.statusText,
   });
-});
+}); */
 
-async function saveConversationToFirebase(
-  conversation,
-  userId,
-  updatedChatHistory
-) {
+async function saveConversationToFirebase(conversation, userId) {
   console.log("Saving conversation:", conversation);
   try {
     const db = admin.firestore();
