@@ -185,11 +185,13 @@ try {
     } catch (error) {
       const { response } = error;
       let errorMessage = "An unknown error occurred";
+      let statusCode = 500; // Add this line to send the correct status code
 
       if (response && response.data && response.data.error) {
         errorMessage = response.data.error.message;
+        statusCode = response.status || 500; // Update the status code if available
       }
-      res.status(500).send({ error: errorMessage });
+      res.status(statusCode).send({ error: errorMessage }); // Send the status code along with the error message
     }
   });
 } catch (error) {
