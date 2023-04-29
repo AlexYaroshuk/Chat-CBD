@@ -126,7 +126,7 @@ try {
 
       if (type === "image") {
         const imageResponse = await openai.createImage({
-          prompt: preprocessedMessages,
+          prompt: messages[messages.length - 1].content,
           n: 1,
           size: "256x256",
           response_format: "url",
@@ -150,7 +150,7 @@ try {
       } else {
         const response = await openai.createChatCompletion({
           model: "gpt-3.5-turbo",
-          messages: messages,
+          messages: preprocessedMessages,
           temperature: 0.5,
           max_tokens: 2000,
           top_p: 1,
