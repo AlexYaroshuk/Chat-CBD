@@ -102,16 +102,31 @@ async function uploadImageToFirebase(imageUrl) {
 
 const PORT = process.env.PORT || 5000;
 
+function preprocessChatHistory(messages) {
+  return messages.map((message) => {
+    // Check if the message is an image
+    const isImage = message.type === "image";
+
+    // Only return the role and content properties of each message
+    return {
+      role: message.role,
+      content: isImage ? "generated image" : message.content,
+    };
+  });
+}
+
 try {
   app.post("/send-message", async (req, res) => {
     try {
       const { messages, type, activeConversation, userId } = req.body;
 
+      const preprocessedMessages = preprocessChatHistory(messages);
+
       let newMessage;
 
       if (type === "image") {
         const imageResponse = await openai.createImage({
-          prompt: messages[messages.length - 1].content,
+          prompt: preprocessedMessages,
           n: 1,
           size: "256x256",
           response_format: "url",
@@ -161,12 +176,12 @@ try {
 
       // Update the messages array with the new message
 
-    const updatedMessages = [...messages, newMessage];
+      const updatedMessages = [...messages, newMessage];
 
-    await saveConversationToFirebase(
-      { id: activeConversation, messages: updatedMessages },
-      userId
-    );
+      await saveConversationToFirebase(
+        { id: activeConversation, messages: updatedMessages },
+        userId
+      );
     } catch (error) {
       const { response } = error;
       let errorMessage = "An unknown error occurred";
