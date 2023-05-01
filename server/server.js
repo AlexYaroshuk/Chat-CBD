@@ -31,10 +31,7 @@ const configuration = new Configuration({
 
 const openai = new OpenAIApi(configuration);
 
-const allowedOrigins = [
-  "https://chat-cbd-test.vercel.app",
-  "http://localhost:5173",
-];
+const allowedOrigins = ["https://chat-cbd.vercel.app/"];
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -158,8 +155,6 @@ try {
           presence_penalty: 0,
         });
 
-        console.log("OpenAI API response:", response);
-
         const botResponse = response.data.choices[0].message.content.trim();
 
         newMessage = {
@@ -195,8 +190,6 @@ try {
     }
   });
 } catch (error) {
-  console.error("Error in /send-message:", error);
-
   let errorMessage = "An unknown error occurred";
   let statusCode = 500;
 
@@ -208,41 +201,14 @@ try {
   res.status(statusCode).send({ error: errorMessage });
 }
 
-/* app.use((error, req, res, next) => {
-  console.error(error);
-  const { response } = error;
-  let errorMessage = "An unknown error occurred";
-
-  if (response && response.data && response.data.error) {
-    errorMessage = response.data.error.message;
-  }
-
-  res.status(500).send({
-    error: errorMessage,
-    statusCode: response.status,
-    statusText: response.statusText,
-  });
-}); */
-
 async function saveConversationToFirebase(conversation, userId) {
-  console.log("Saving conversation:", conversation);
   try {
     const db = admin.firestore();
     const conversationsRef = db.collection(`users/${userId}/conversations`);
     const docRef = conversationsRef.doc(conversation.id);
 
-    console.log("Before saving to Firebase:", conversation);
     await docRef.set(conversation);
-    console.log("After saving to Firebase:", conversation);
-
-    console.log(`Conversation ${conversation.id} saved to Firebase.`);
   } catch (error) {
-    console.error("Error saving conversation to Firebase:", error);
+    console.error("Error saving conversation:", error);
   }
 }
-
-app.listen(process.env.PORT || 5000, () =>
-  console.log(
-    `Server is running on port http://localhost:${process.env.PORT || 5000}`
-  )
-);
