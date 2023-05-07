@@ -31,7 +31,7 @@ const configuration = new Configuration({
 
 const openai = new OpenAIApi(configuration);
 
-const allowedOrigins = ["https://chat-cbd.vercel.app", "http://localhost:5173"];
+const allowedOrigins = ["https://chat-cbd.vercel.app"];
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -291,7 +291,7 @@ app.get("/ping", (req, res) => {
 const https = require("https");
 
 const options = {
-  hostname: "chat-cbd-server-test.onrender.com",
+  hostname: "chat-cbd.onrender.com",
   path: "/ping",
   method: "GET",
 };
