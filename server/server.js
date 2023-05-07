@@ -112,104 +112,169 @@ function preprocessChatHistory(messages) {
   });
 }
 
-try {
-  app.post("/send-message", async (req, res) => {
-    try {
-      const { messages, type, activeConversation, userId } = req.body;
+app.post("/send-message", async (req, res) => {
+  try {
+    const { userPrompt, type, activeConversation, userId } = req.body;
 
-      const preprocessedMessages = preprocessChatHistory(messages);
+    let conversation = null;
 
-      let newMessage;
-
-      if (type === "image") {
-        const imageResponse = await openai.createImage({
-          prompt: messages[messages.length - 1].content,
-          n: 1,
-          size: "256x256",
-          response_format: "url",
-        });
-
-        const imageUrl = imageResponse.data.data[0].url;
-        const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
-
-        newMessage = {
-          role: "system",
-          content: "",
-          images: [uploadedImageUrl],
-          type: "image",
-        };
-
-        res.status(200).send({
-          bot: "",
-          type: "image",
-          images: [uploadedImageUrl],
-        });
-      } else {
-        const response = await openai.createChatCompletion({
-          model: "gpt-4",
-          messages: preprocessedMessages,
-          temperature: 0.5,
-          max_tokens: 2000,
-          top_p: 1,
-          frequency_penalty: 0.5,
-          presence_penalty: 0,
-        });
-
-        const botResponse = response.data.choices[0].message.content.trim();
-
-        newMessage = {
-          role: "system",
-          content: botResponse,
-          type: "text",
-        };
-
-        res.status(200).send({
-          bot: botResponse,
-          type: "text",
-        });
-      }
-
-      // Update the messages array with the new message
-
-      const updatedMessages = [...messages, newMessage];
-
-      await saveConversationToFirebase(
-        { id: activeConversation, messages: updatedMessages },
+    if (activeConversation) {
+      conversation = await getConversationFromDatabase(
+        activeConversation,
         userId
       );
-    } catch (error) {
-      const { response } = error;
-      let errorMessage = "An unknown error occurred";
-      let statusCode = 500; // Add this line to send the correct status code
-
-      if (response && response.data && response.data.error) {
-        errorMessage = response.data.error.message;
-        statusCode = response.status || 500; // Update the status code if available
-      }
-      res.status(statusCode).send({ error: errorMessage }); // Send the status code along with the error message
     }
-  });
-} catch (error) {
-  let errorMessage = "An unknown error occurred";
-  let statusCode = 500;
 
-  if (error.response && error.response.data && error.response.data.error) {
-    errorMessage = error.response.data.error.message;
-    statusCode = error.response.status || 500;
+    // Generate a unique ID
+    function generateUniqueId() {
+      const timestamp = Date.now();
+      const randomNumber = Math.random();
+      const hexadecimalString = randomNumber.toString(16);
+      return `id-${timestamp}-${hexadecimalString}`;
+    }
+
+    // Create a new conversation if it doesn't exist
+    if (!conversation || conversation.id === "null") {
+      const newId = generateUniqueId();
+      conversation = {
+        id: newId,
+        messages: [],
+      };
+      await saveConversationToFirebase(conversation, userId);
+    }
+    // Add the userPrompt to the conversation's messages array
+    const updatedMessages = [...conversation.messages, userPrompt];
+
+    // Preprocess the messages
+    const preprocessedMessages = preprocessChatHistory(updatedMessages);
+
+    console.log("🚀 ~ app.post ~ preprocessedMessages:", preprocessedMessages);
+    let newMessage;
+    // ! image type
+    if (type === "image") {
+      const imageResponse = await openai.createImage({
+        prompt: userPrompt.content,
+        n: 1,
+        size: "256x256",
+        response_format: "url",
+      });
+
+      const imageUrl = imageResponse.data.data[0].url;
+      const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
+
+      newMessage = {
+        role: "system",
+        content: "",
+        images: [uploadedImageUrl],
+        type: "image",
+      };
+
+      res.status(200).send({
+        bot: "",
+        type: "image",
+        images: [uploadedImageUrl],
+      });
+    }
+    // ! text type
+    else {
+      const response = await openai.createChatCompletion({
+        model: "gpt-4",
+        messages: preprocessedMessages,
+        temperature: 0.5,
+        max_tokens: 2000,
+        top_p: 1,
+        frequency_penalty: 0.5,
+        presence_penalty: 0,
+      });
+
+      console.log("OpenAI API response:", response);
+
+      const botResponse = response.data.choices[0].message.content.trim();
+
+      newMessage = {
+        role: "system",
+        content: botResponse,
+        type: "text",
+      };
+
+      res.status(200).send({
+        bot: botResponse,
+        type: "text",
+      });
+    }
+
+    // Update the messages array with the new message
+
+    const updatedMessagesWithResponse = [...updatedMessages, newMessage];
+
+    await saveConversationToFirebase(
+      { id: activeConversation, messages: updatedMessagesWithResponse },
+      userId
+    );
+  } catch (error) {
+    const { response } = error;
+    console.log("🚀 ~ app.post ~ error:", error);
+    let errorMessage = "An unknown error occurred";
+    let statusCode = 500; // Add this line to send the correct status code
+
+    if (response && response.data && response.data.error) {
+      errorMessage = response.data.error.message;
+      statusCode = response.status || 500; // Update the status code if available
+    }
+    res.status(statusCode).send({ error: errorMessage });
+    console.log("🚀 ~ app.post ~ errorMessage:", errorMessage);
+    // Send the status code along with the error message
+  }
+});
+/* app.use((error, req, res, next) => {
+  console.error(error);
+  const { response } = error;
+  let errorMessage = "An unknown error occurred";
+
+  if (response && response.data && response.data.error) {
+    errorMessage = response.data.error.message;
   }
 
-  res.status(statusCode).send({ error: errorMessage });
+  res.status(500).send({
+    error: errorMessage,
+    statusCode: response.status,
+    statusText: response.statusText,
+  });
+}); */
+
+async function getConversationFromDatabase(activeConversation, userId) {
+  try {
+    const db = admin.firestore();
+    const conversationsRef = db.collection(`users/${userId}/conversations`);
+    const docRef = conversationsRef.doc(activeConversation);
+
+    const doc = await docRef.get();
+
+    if (doc.exists) {
+      return doc.data();
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error("Error getting conversation from Firebase:", error);
+    throw error;
+  }
 }
 
 async function saveConversationToFirebase(conversation, userId) {
+  console.log("Saving conversation:", conversation);
   try {
     const db = admin.firestore();
     const conversationsRef = db.collection(`users/${userId}/conversations`);
     const docRef = conversationsRef.doc(conversation.id);
 
+    console.log("Before saving to Firebase:", conversation);
     await docRef.set(conversation);
+    console.log("After saving to Firebase:", conversation);
+
+    console.log(`Conversation ${conversation.id} saved to Firebase.`);
   } catch (error) {
-    console.error("Error saving conversation:", error);
+    console.error("Error saving conversation to Firebase:", error);
   }
 }
 
@@ -218,3 +283,34 @@ app.listen(process.env.PORT || 5000, () =>
     `Server is running on port http://localhost:${process.env.PORT || 5000}`
   )
 );
+
+app.get("/ping", (req, res) => {
+  res.status(200).send("pong");
+});
+
+const https = require("https");
+
+const options = {
+  hostname: "chat-cbd-server-test.onrender.com",
+  path: "/ping",
+  method: "GET",
+};
+
+// Self-ping function
+function selfPing() {
+  console.log("Pinging to keep the server awake...");
+  https
+    .request(options, (res) => {
+      console.log(`Self-ping status: ${res.statusCode}`);
+      res.on("data", (d) => {
+        process.stdout.write(d);
+      });
+    })
+    .on("error", (err) => {
+      console.error(`Self-ping error: ${err.message}`);
+    })
+    .end();
+}
+
+// Schedule the self-ping every 14 minutes
+setInterval(selfPing, 14 * 60 * 1000);
