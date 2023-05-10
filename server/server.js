@@ -113,8 +113,11 @@ function preprocessChatHistory(messages) {
 }
 
 app.post("/send-message", async (req, res) => {
+  console.log("body received", req.body);
   try {
-    const { userPrompt, type, activeConversation, userId } = req.body;
+    const { userPrompt, type, selectedImageSize, activeConversation, userId } =
+      req.body;
+    console.log("body received", req.body);
 
     let conversation = null;
 
@@ -148,14 +151,15 @@ app.post("/send-message", async (req, res) => {
     // Preprocess the messages
     const preprocessedMessages = preprocessChatHistory(updatedMessages);
 
-    console.log("🚀 ~ app.post ~ preprocessedMessages:", preprocessedMessages);
+    /* console.log("🚀 ~ app.post ~ preprocessedMessages:", preprocessedMessages); */
     let newMessage;
+
     // ! image type
     if (type === "image") {
       const imageResponse = await openai.createImage({
         prompt: userPrompt.content,
         n: 1,
-        size: "256x256",
+        size: selectedImageSize,
         response_format: "url",
       });
 
@@ -168,6 +172,9 @@ app.post("/send-message", async (req, res) => {
         images: [uploadedImageUrl],
         type: "image",
       };
+
+      console.log("request:", imageResponse);
+      console.log("image size rec:", selectedImageSize);
 
       res.status(200).send({
         bot: "",
@@ -226,6 +233,7 @@ app.post("/send-message", async (req, res) => {
     // Send the status code along with the error message
   }
 });
+
 /* app.use((error, req, res, next) => {
   console.error(error);
   const { response } = error;
@@ -262,17 +270,17 @@ async function getConversationFromDatabase(activeConversation, userId) {
 }
 
 async function saveConversationToFirebase(conversation, userId) {
-  console.log("Saving conversation:", conversation);
+  /* console.log("Saving conversation:", conversation); */
   try {
     const db = admin.firestore();
     const conversationsRef = db.collection(`users/${userId}/conversations`);
     const docRef = conversationsRef.doc(conversation.id);
 
-    console.log("Before saving to Firebase:", conversation);
+    /* console.log("Before saving to Firebase:", conversation); */
     await docRef.set(conversation);
-    console.log("After saving to Firebase:", conversation);
+    /* console.log("After saving to Firebase:", conversation); */
 
-    console.log(`Conversation ${conversation.id} saved to Firebase.`);
+    /* console.log(`Conversation ${conversation.id} saved to Firebase.`); */
   } catch (error) {
     console.error("Error saving conversation to Firebase:", error);
   }
