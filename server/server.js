@@ -12,6 +12,16 @@ import FormData from "form-data";
 import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 
+import * as Generation from "./generation/generation_pb";
+import { GenerationServiceClient } from "./generation/generation_pb_service";
+import { grpc as GRPCWeb } from "@improbable-eng/grpc-web";
+import { NodeHttpTransport } from "@improbable-eng/grpc-web-node-http-transport";
+import {
+  buildGenerationRequest,
+  executeGenerationRequest,
+  onGenerationComplete,
+} from "./helpers";
+
 const serviceAccountPath = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT";
 const serviceAccountContent = fs.readFileSync(serviceAccountPath, "utf-8");
 const serviceAccount = JSON.parse(serviceAccountContent);
@@ -25,11 +35,23 @@ dotenv.config();
 
 const app = express();
 
+// ? Initialize the OpenAI client
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 const openai = new OpenAIApi(configuration);
+
+// ? Initialize the gRPC client
+// This is a NodeJS-specific requirement - browsers implementations should omit this line.
+GRPCWeb.setDefaultTransport(NodeHttpTransport());
+
+// Authenticate using your API key, don't commit your key to a public repository!
+const metadata = new GRPCWeb.Metadata();
+metadata.set("Authorization", "Bearer " + process.env.STABLE_API_KEY);
+
+// Create a generation client to use with all future requests
+const client = new GenerationServiceClient("https://grpc.stability.ai", {});
 
 const allowedOrigins = [
   "https://chat-cbd-server-test.onrender.com",
@@ -118,8 +140,14 @@ function preprocessChatHistory(messages) {
 app.post("/send-message", async (req, res) => {
   console.log("body received", req.body);
   try {
-    const { userPrompt, type, selectedImageSize, activeConversation, userId } =
-      req.body;
+    const {
+      userPrompt,
+      type,
+      selectedImageSize,
+      selectedImageProvider,
+      activeConversation,
+      userId,
+    } = req.body;
     console.log("body received", req.body);
 
     let conversation = null;
@@ -159,31 +187,79 @@ app.post("/send-message", async (req, res) => {
 
     // ! image type
     if (type === "image") {
-      const imageResponse = await openai.createImage({
-        prompt: userPrompt.content,
-        n: 1,
-        size: selectedImageSize,
-        response_format: "url",
-      });
+      // ?? OPENAI PROVIDER
+      if (selectedImageProvider === "DALL-E") {
+        const imageResponse = await openai.createImage({
+          prompt: userPrompt.content,
+          n: 1,
+          size: selectedImageSize,
+          response_format: "url",
+        });
 
-      const imageUrl = imageResponse.data.data[0].url;
-      const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
+        const imageUrl = imageResponse.data.data[0].url;
+        const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
 
-      newMessage = {
-        role: "system",
-        content: "",
-        images: [uploadedImageUrl],
-        type: "image",
-      };
+        newMessage = {
+          role: "system",
+          content: "",
+          images: [uploadedImageUrl],
+          type: "image",
+        };
 
-      console.log("request:", imageResponse);
-      console.log("image size rec:", selectedImageSize);
+        console.log("request:", imageResponse);
+        console.log("image size rec:", selectedImageSize);
 
-      res.status(200).send({
-        bot: "",
-        type: "image",
-        images: [uploadedImageUrl],
-      });
+        res.status(200).send({
+          bot: "",
+          type: "image",
+          images: [uploadedImageUrl],
+        });
+      } else {
+        // ?? STABLE DIF PROVIDER{
+        const [width, height] = selectedImageSize.split("x").map(Number);
+        const imageResponse = buildGenerationRequest(
+          "stable-diffusion-xl-beta-v2-2-2",
+          {
+            type: "text-to-image",
+            prompts: [
+              {
+                text: userPrompt.content,
+              },
+            ],
+            width: width,
+            height: height,
+            samples: 1,
+            cfgScale: 13,
+            steps: 25,
+            sampler: Generation.DiffusionSampler.SAMPLER_K_DPMPP_2M,
+          }
+        );
+
+        executeGenerationRequest(client, request, metadata)
+          .then(onGenerationComplete)
+          .catch((error) => {
+            console.error("Failed to make text-to-image request:", error);
+          });
+
+        const imageUrl = imageResponse.data.data[0].url;
+        const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
+
+        newMessage = {
+          role: "system",
+          content: "",
+          images: [uploadedImageUrl],
+          type: "image",
+        };
+
+        console.log("request:", imageResponse);
+        console.log("image size rec:", selectedImageSize);
+
+        res.status(200).send({
+          bot: "",
+          type: "image",
+          images: [uploadedImageUrl],
+        });
+      }
     }
     // ! text type
     else {
