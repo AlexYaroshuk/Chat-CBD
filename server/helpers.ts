@@ -1,7 +1,7 @@
 import * as Generation from "./generation/generation_pb";
 import { GenerationServiceClient } from "./generation/generation_pb_service";
 import { grpc as GRPCWeb } from "@improbable-eng/grpc-web";
-import fs from "fs";
+import * as fs from "fs";
 import { ArtifactTypeMap, FinishReasonMap } from "./generation/generation_pb";
 
 export type GenerationTextPrompt = {
