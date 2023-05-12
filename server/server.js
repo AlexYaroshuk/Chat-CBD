@@ -21,7 +21,7 @@ import {
   buildGenerationRequest,
   executeGenerationRequest,
   onGenerationComplete,
-} from "./helpers";
+} from "./helpers.ts";
 
 const serviceAccountPath = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT";
 const serviceAccountContent = fs.readFileSync(serviceAccountPath, "utf-8");
