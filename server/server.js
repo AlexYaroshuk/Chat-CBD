@@ -12,16 +12,24 @@ import FormData from "form-data";
 import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 
-import * as Generation from "./generation/generation_pb.js";
+import * as Generation from "./generation/generation_pb.cjs";
 
-import { GenerationServiceClient } from "./generation/generation_pb_service.js";
-import { grpc as GRPCWeb } from "@improbable-eng/grpc-web";
+const {
+  GenerationServiceClient,
+} = require("./generation/generation_pb_service.cjs");
+
+import GRPCWeb from "@improbable-eng/grpc-web";
+
 import { NodeHttpTransport } from "@improbable-eng/grpc-web-node-http-transport";
-import {
+/* import {
   buildGenerationRequest,
   executeGenerationRequest,
   onGenerationComplete,
-} from "./helpers";
+} from "./helpers.js"; */
+
+const { buildGenerationRequest } = require("./helpers.cjs");
+const { executeGenerationRequest } = require("./helpers.cjs");
+const { onGenerationComplete } = require("./helpers.cjs");
 
 const serviceAccountPath = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT";
 const serviceAccountContent = fs.readFileSync(serviceAccountPath, "utf-8");
