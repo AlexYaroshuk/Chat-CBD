@@ -12,8 +12,9 @@ import FormData from "form-data";
 import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 
-import * as Generation from "./generation/generation_pb";
-import { GenerationServiceClient } from "./generation/generation_pb_service";
+import * as Generation from "./generation/generation_pb.js";
+
+import { GenerationServiceClient } from "./generation/generation_pb_service.js";
 import { grpc as GRPCWeb } from "@improbable-eng/grpc-web";
 import { NodeHttpTransport } from "@improbable-eng/grpc-web-node-http-transport";
 import {
