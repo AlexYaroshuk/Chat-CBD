@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/server/server.js",
+    "start": "node dist/server.js",
     "serve-client": "cp -R client/ dist/"
   },
   "keywords": [],
