@@ -25,17 +25,20 @@ dotenv.config();
 
 const app = express();
 
-//OPENAI SETUP
+//// * PROVIDERS SETUP
+// ? OPENAI SETUP
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
 
-//STABILITY SETUP
+// ? STABILITY SETUP
 const stabilityEngineId = "stable-diffusion-v1-5";
 const stabilityApiHost = process.env.API_HOST ?? "https://api.stability.ai";
 const stabilityApiKey = process.env.STABILITY_API_KEY;
-const allowedOrigins = ["https://chat-cbd-test.vercel.app/", "localhost"];
+//// ?*
+
+const allowedOrigins = ["https://chat-cbd-test.vercel.app/", "localhost:5173"];
 
 const corsOptions = {
   origin: function (origin, callback) {
