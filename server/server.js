@@ -53,7 +53,7 @@ const openai = new OpenAIApi(configuration);
 
 // ? Initialize the gRPC client
 // This is a NodeJS-specific requirement - browsers implementations should omit this line.
-/* GRPCWeb.setDefaultTransport(NodeHttpTransport()); */
+GRPCWeb.setDefaultTransport(NodeHttpTransport());
 
 // Authenticate using your API key, don't commit your key to a public repository!
 const metadata = new GRPCWeb.Metadata();
