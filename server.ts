@@ -297,7 +297,7 @@ app.post("/send-message", async (req, res) => {
         res.status(200).send({
           bot: "",
           type: "image",
-          images: uploadedImageUrls,
+          images: uploadedImageUrls[0],
         });
       }
     }
