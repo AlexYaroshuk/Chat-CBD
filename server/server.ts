@@ -4,8 +4,8 @@ import cors from "cors";
 import { Configuration, OpenAIApi } from "openai";
 import { createRequire } from "module";
 
-const require = createRequire(import.meta.url);
-const admin = require("firebase-admin");
+import * as admin from "firebase-admin";
+import * as https from "https";
 
 import fetch from "node-fetch";
 import FormData from "form-data";
@@ -59,18 +59,34 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-async function uploadImageToFirebase(imageUrl) {
+async function uploadImageToFirebase(imageInput) {
   try {
-    const response = await fetch(imageUrl);
-    const buffer = await response.buffer();
+    let buffer;
+    let contentType;
     const uniqueId = uuidv4();
-    const fileExtension = imageUrl.split(".").pop().split("?")[0];
+    let fileExtension;
+
+    if (imageInput.startsWith("http://") || imageInput.startsWith("https://")) {
+      // Image input is a URL
+      const response = await fetch(imageInput);
+      buffer = await response.buffer();
+      contentType = response.headers.get("content-type");
+      fileExtension = imageInput.split(".").pop().split("?")[0];
+    } else {
+      // Image input is a base64 string
+      const base64Data = imageInput.replace(/^data:image\/\w+;base64,/, "");
+      buffer = Buffer.from(base64Data, "base64");
+      const match = imageInput.match(/data:image\/(.*);base64/i);
+      fileExtension = match ? match[1] : "png"; // default to png if we can't determine the file type
+      contentType = `image/${fileExtension}`;
+    }
+
     const filename = `${uniqueId}.${fileExtension}`;
 
     const file = admin.storage().bucket().file(filename);
     const writeStream = file.createWriteStream({
       metadata: {
-        contentType: response.headers.get("content-type"),
+        contentType: contentType,
       },
     });
 
@@ -230,21 +246,28 @@ app.post("/send-message", async (req, res) => {
           }
         );
 
-        executeGenerationRequest(client, request, metadata)
-          .then(onGenerationComplete)
-          .catch((error) => {
-            console.error("Failed to make text-to-image request:", error);
-          });
+        if (!imageResponse.ok) {
+          throw new Error(`Non-200 response: ${await imageResponse.text()}`);
+        }
 
-        const imageUrl = imageResponse.data.data[0].url;
-        const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
+        interface GenerationResponse {
+          artifacts: Array<{
+            base64: string;
+            seed: number;
+            finishReason: string;
+          }>;
+        }
 
-        newMessage = {
-          role: "system",
-          content: "",
-          images: [uploadedImageUrl],
-          type: "image",
-        };
+        const responseJSON = (await imageResponse.json()) as GenerationResponse;
+
+        const uploadedImageUrls: string[] = [];
+
+        for (const [index, image] of responseJSON.artifacts.entries()) {
+          const imageBuffer = Buffer.from(image.base64, "base64");
+          const imageName = `v1_txt2img_${index}.png`;
+          const uploadedImageUrl = await uploadImageToFirebase(imageBuffer);
+          uploadedImageUrls.push(uploadedImageUrl as string);
+        }
 
         console.log("request:", imageResponse);
         console.log("image size rec:", selectedImageSize);
@@ -252,7 +275,7 @@ app.post("/send-message", async (req, res) => {
         res.status(200).send({
           bot: "",
           type: "image",
-          images: [uploadedImageUrl],
+          images: uploadedImageUrls,
         });
       }
     }
@@ -369,8 +392,6 @@ app.listen(process.env.PORT || 5000, () =>
 app.get("/ping", (req, res) => {
   res.status(200).send("pong");
 });
-
-const https = require("https");
 
 const options = {
   hostname: "chat-cbd.onrender.com",
