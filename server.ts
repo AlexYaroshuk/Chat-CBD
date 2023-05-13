@@ -1,9 +1,11 @@
 import express from "express";
 
-const dotenv: any = require("dotenv");
-const admin: any = require("firebase-admin");
+import * as dotenv from "dotenv";
+import * as admin from "firebase-admin";
+import * as openaiPackage from "openai";
+
 import cors, { CorsOptions } from "cors";
-const openaiPackage: any = require("openai");
+
 const { Configuration } = openaiPackage;
 
 import * as https from "https";
@@ -208,7 +210,9 @@ app.post("/send-message", async (req, res) => {
         });
 
         const imageUrl = imageResponse.data.data[0].url;
-        const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
+        const uploadedImageUrl = await uploadImageToFirebase(
+          imageUrl as string
+        );
 
         newMessage = {
           role: "system",
@@ -303,7 +307,7 @@ app.post("/send-message", async (req, res) => {
 
       console.log("OpenAI API response:", response);
 
-      const botResponse = response.data.choices[0].message.content.trim();
+      const botResponse = response.data.choices[0].message?.content.trim();
 
       newMessage = {
         role: "system",
