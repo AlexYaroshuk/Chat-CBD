@@ -289,6 +289,13 @@ app.post("/send-message", async (req, res) => {
           uploadedImageUrls.push(uploadedImageUrl as string);
         }
 
+        newMessage = {
+          role: "system",
+          content: "",
+          images: [uploadedImageUrls],
+          type: "image",
+        };
+
         console.log("uploadedImageUrls:", uploadedImageUrls);
 
         console.log("request:", imageResponse);
@@ -297,7 +304,7 @@ app.post("/send-message", async (req, res) => {
         res.status(200).send({
           bot: "",
           type: "image",
-          images: uploadedImageUrls[0],
+          images: [uploadedImageUrls],
         });
       }
     }
