@@ -292,7 +292,7 @@ app.post("/send-message", async (req, res) => {
         newMessage = {
           role: "system",
           content: "",
-          images: [uploadedImageUrls],
+          images: uploadedImageUrls,
           type: "image",
         };
 
@@ -304,7 +304,7 @@ app.post("/send-message", async (req, res) => {
         res.status(200).send({
           bot: "",
           type: "image",
-          images: [uploadedImageUrls],
+          images: uploadedImageUrls,
         });
       }
     }
