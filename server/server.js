@@ -25,13 +25,17 @@ dotenv.config();
 
 const app = express();
 
+//OPENAI SETUP
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
 const openai = new OpenAIApi(configuration);
 
-const allowedOrigins = ["https://chat-cbd.vercel.app"];
+//STABILITY SETUP
+const stabilityEngineId = "stable-diffusion-v1-5";
+const stabilityApiHost = process.env.API_HOST ?? "https://api.stability.ai";
+const stabilityApiKey = process.env.STABILITY_API_KEY;
+const allowedOrigins = ["https://chat-cbd-test.vercel.app/", "localhost"];
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -115,8 +119,14 @@ function preprocessChatHistory(messages) {
 app.post("/send-message", async (req, res) => {
   console.log("body received", req.body);
   try {
-    const { userPrompt, type, selectedImageSize, activeConversation, userId } =
-      req.body;
+    const {
+      userPrompt,
+      type,
+      selectedImageSize,
+      selectedImageProvider,
+      activeConversation,
+      userId,
+    } = req.body;
     console.log("body received", req.body);
 
     let conversation = null;
@@ -156,31 +166,89 @@ app.post("/send-message", async (req, res) => {
 
     // ! image type
     if (type === "image") {
-      const imageResponse = await openai.createImage({
-        prompt: userPrompt.content,
-        n: 1,
-        size: selectedImageSize,
-        response_format: "url",
-      });
+      // ?? OPENAI PROVIDER
+      if (selectedImageProvider === "DALL-E") {
+        const imageResponse = await openai.createImage({
+          prompt: userPrompt.content,
+          n: 1,
+          size: selectedImageSize,
+          response_format: "url",
+        });
 
-      const imageUrl = imageResponse.data.data[0].url;
-      const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
+        const imageUrl = imageResponse.data.data[0].url;
+        const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
 
-      newMessage = {
-        role: "system",
-        content: "",
-        images: [uploadedImageUrl],
-        type: "image",
-      };
+        newMessage = {
+          role: "system",
+          content: "",
+          images: [uploadedImageUrl],
+          type: "image",
+        };
 
-      console.log("request:", imageResponse);
-      console.log("image size rec:", selectedImageSize);
+        console.log("request:", imageResponse);
+        console.log("image size rec:", selectedImageSize);
 
-      res.status(200).send({
-        bot: "",
-        type: "image",
-        images: [uploadedImageUrl],
-      });
+        res.status(200).send({
+          bot: "",
+          type: "image",
+          images: [uploadedImageUrl],
+        });
+      } else {
+        // ?? STABLE DIF PROVIDER{
+        const engineId = "stable-diffusion-v1-5";
+
+        const [width, height] = selectedImageSize.split("x").map(Number);
+
+        const imageResponse = await fetch(
+          `${stabilityApiHost}/v1/generation/${stabilityEngineId}/text-to-image`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${stabilityApiKey}`,
+            },
+            body: JSON.stringify({
+              text_prompts: [
+                {
+                  text: "A lighthouse on a cliff",
+                },
+              ],
+              cfg_scale: 7,
+              clip_guidance_preset: "FAST_BLUE",
+              height: 512,
+              width: 512,
+              samples: 1,
+              steps: 30,
+            }),
+          }
+        );
+
+        executeGenerationRequest(client, request, metadata)
+          .then(onGenerationComplete)
+          .catch((error) => {
+            console.error("Failed to make text-to-image request:", error);
+          });
+
+        const imageUrl = imageResponse.data.data[0].url;
+        const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
+
+        newMessage = {
+          role: "system",
+          content: "",
+          images: [uploadedImageUrl],
+          type: "image",
+        };
+
+        console.log("request:", imageResponse);
+        console.log("image size rec:", selectedImageSize);
+
+        res.status(200).send({
+          bot: "",
+          type: "image",
+          images: [uploadedImageUrl],
+        });
+      }
     }
     // ! text type
     else {
