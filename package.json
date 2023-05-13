@@ -21,6 +21,7 @@
     "firebase-admin": "^11.7.0",
     "fs": "^0.0.1-security",
     "google-protobuf": "^3.21.2",
+    "grpc-web": "^1.4.2",
     "nodemon": "^2.0.20",
     "openai": "^3.2.1",
     "serve": "^12.0.0",
