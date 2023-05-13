@@ -128,6 +128,12 @@ async function uploadImageToFirebase(imageInput: string | Buffer) {
       throw error;
     });
 
+    if (uploadedImageUrl === undefined) {
+      console.error("uploadedImageUrl is undefined");
+    } else {
+      console.log("uploadedImageUrl:", uploadedImageUrl);
+    }
+
     return uploadedImageUrl;
   } catch (error) {
     console.error("Error uploading image:", error);
@@ -282,6 +288,8 @@ app.post("/send-message", async (req, res) => {
           const uploadedImageUrl = await uploadImageToFirebase(imageBuffer);
           uploadedImageUrls.push(uploadedImageUrl as string);
         }
+
+        console.log("uploadedImageUrls:", uploadedImageUrls);
 
         console.log("request:", imageResponse);
         console.log("image size rec:", selectedImageSize);
