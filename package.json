@@ -4,6 +4,7 @@
   "description": "",
   "type": "module",
   "scripts": {
+    "build": "tsc",
     "start": "node server/server.js",
     "serve-client": "cp -R client/ dist/"
   },
