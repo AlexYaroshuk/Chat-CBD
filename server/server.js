@@ -38,7 +38,10 @@ const stabilityApiHost = process.env.API_HOST ?? "https://api.stability.ai";
 const stabilityApiKey = process.env.STABILITY_API_KEY;
 //// ?*
 
-const allowedOrigins = ["https://chat-cbd-test.vercel.app/", "localhost:5173"];
+const allowedOrigins = [
+  "https://chat-cbd-test.vercel.app/",
+  "http://localhost:5173",
+];
 
 const corsOptions = {
   origin: function (origin, callback) {
