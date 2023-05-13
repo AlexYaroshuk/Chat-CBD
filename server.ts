@@ -239,7 +239,7 @@ app.post("/send-message", async (req, res) => {
         // ?? STABLE DIF PROVIDER{
         const engineId = "stable-diffusion-v1-5";
 
-        const [width, height] = selectedImageSize.split("x").map(Number);
+        /* const [width, height] = selectedImageSize.split("x").map(Number); */
 
         const imageResponse = await fetch(
           `${stabilityApiHost}/v1/generation/${stabilityEngineId}/text-to-image`,
@@ -279,6 +279,7 @@ app.post("/send-message", async (req, res) => {
         }
 
         const responseJSON = (await imageResponse.json()) as GenerationResponse;
+        console.log("🚀 ~ file: server.ts:283 ~ responseJSON:", responseJSON);
 
         const uploadedImageUrls: string[] = [];
 
