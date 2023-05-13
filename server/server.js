@@ -39,7 +39,7 @@ const stabilityApiKey = process.env.STABILITY_API_KEY;
 //// ?*
 
 const allowedOrigins = [
-  "https://chat-cbd-test.vercel.app/",
+  "https://chat-cbd-test.vercel.app",
   "http://localhost:5173",
 ];
 
