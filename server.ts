@@ -1,7 +1,7 @@
 import express from "express";
 
 import * as dotenv from "dotenv";
-import * as admin from "firebase-admin";
+import admin from "firebase-admin";
 import * as openaiPackage from "openai";
 
 import cors, { CorsOptions } from "cors";
