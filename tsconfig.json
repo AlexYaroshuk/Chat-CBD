@@ -7,6 +7,6 @@
     "esModuleInterop": true,
     "moduleResolution": "node"
   },
-  "include": ["server/**/*.ts"],
+  "include": ["*.ts"],
   "exclude": ["node_modules"]
 }
