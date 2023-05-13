@@ -1,14 +1,15 @@
 import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
-import { Configuration, OpenAIApi } from "openai";
-import { createRequire } from "module";
 
-import * as admin from "firebase-admin";
+const dotenv: any = require("dotenv");
+const admin: any = require("firebase-admin");
+import cors, { CorsOptions } from "cors";
+const openaiPackage: any = require("openai");
+const { Configuration } = openaiPackage;
+
 import * as https from "https";
 
-import fetch from "node-fetch";
-import FormData from "form-data";
+import fetch, { RequestInfo } from "node-fetch";
+
 import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 
@@ -30,7 +31,7 @@ const app = express();
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
+const openai = new openaiPackage.OpenAIApi(configuration);
 
 // ? STABILITY SETUP
 const stabilityEngineId = "stable-diffusion-v1-5";
@@ -43,40 +44,49 @@ const allowedOrigins = [
   "http://localhost:5173",
 ];
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+const corsOptions: CorsOptions = {
+  origin: (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void
+  ) => {
+    if (origin && allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      callback(new Error("Not allowed by CORS"), false);
     }
   },
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
+
 app.use(express.json());
 
-async function uploadImageToFirebase(imageInput) {
+async function uploadImageToFirebase(imageInput: string | Buffer) {
   try {
-    let buffer;
-    let contentType;
+    let buffer: Buffer;
+    let contentType: string | null;
     const uniqueId = uuidv4();
-    let fileExtension;
+    let fileExtension: string;
 
-    if (imageInput.startsWith("http://") || imageInput.startsWith("https://")) {
+    if (
+      typeof imageInput === "string" &&
+      (imageInput.startsWith("http://") || imageInput.startsWith("https://"))
+    ) {
       // Image input is a URL
       const response = await fetch(imageInput);
       buffer = await response.buffer();
-      contentType = response.headers.get("content-type");
-      fileExtension = imageInput.split(".").pop().split("?")[0];
+      contentType = response.headers.get("content-type") || "image/png";
+      fileExtension = imageInput.split(".").pop()?.split("?")[0] || "png";
     } else {
       // Image input is a base64 string
-      const base64Data = imageInput.replace(/^data:image\/\w+;base64,/, "");
+      const base64Data = imageInput
+        .toString()
+        .replace(/^data:image\/\w+;base64,/, "");
       buffer = Buffer.from(base64Data, "base64");
-      const match = imageInput.match(/data:image\/(.*);base64/i);
+      const match = imageInput.toString().match(/data:image\/(.*);base64/i);
       fileExtension = match ? match[1] : "png"; // default to png if we can't determine the file type
       contentType = `image/${fileExtension}`;
     }
@@ -91,14 +101,14 @@ async function uploadImageToFirebase(imageInput) {
     });
 
     const uploadPromise = new Promise((resolve, reject) => {
-      writeStream.on("error", (error) => reject(error));
+      writeStream.on("error", (error: any) => reject(error));
       writeStream.on("finish", () => {
         file.getSignedUrl(
           {
             action: "read",
             expires: "03-17-2025",
           },
-          (error, url) => {
+          (error: any, url: unknown) => {
             if (error) {
               reject(error);
             } else {
@@ -125,8 +135,8 @@ async function uploadImageToFirebase(imageInput) {
 
 const PORT = process.env.PORT || 5000;
 
-function preprocessChatHistory(messages) {
-  return messages.map((message) => {
+function preprocessChatHistory(messages: any[]) {
+  return messages.map((message: { type: string; role: any; content: any }) => {
     // Check if the message is an image
     const isImage = message.type === "image";
 
@@ -315,7 +325,7 @@ app.post("/send-message", async (req, res) => {
       { id: activeConversation, messages: updatedMessagesWithResponse },
       userId
     );
-  } catch (error) {
+  } catch (error: any) {
     const { response } = error;
     console.log("🚀 ~ app.post ~ error:", error);
     let errorMessage = "An unknown error occurred";
@@ -347,7 +357,10 @@ app.post("/send-message", async (req, res) => {
   });
 }); */
 
-async function getConversationFromDatabase(activeConversation, userId) {
+async function getConversationFromDatabase(
+  activeConversation: any,
+  userId: any
+) {
   try {
     const db = admin.firestore();
     const conversationsRef = db.collection(`users/${userId}/conversations`);
@@ -366,7 +379,10 @@ async function getConversationFromDatabase(activeConversation, userId) {
   }
 }
 
-async function saveConversationToFirebase(conversation, userId) {
+async function saveConversationToFirebase(
+  conversation: { id: any; messages?: any[] | never[] },
+  userId: any
+) {
   /* console.log("Saving conversation:", conversation); */
   try {
     const db = admin.firestore();
