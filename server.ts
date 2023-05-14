@@ -254,12 +254,13 @@ app.post("/send-message", async (req, res) => {
               text_prompts: [
                 {
                   text: "A lighthouse on a cliff",
+                  weight: 0.5,
                 },
               ],
               cfg_scale: 7,
               clip_guidance_preset: "FAST_BLUE",
-              height: 128,
-              width: 128,
+              height: 512,
+              width: 512,
               samples: 1,
               steps: 30,
             }),
