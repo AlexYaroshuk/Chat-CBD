@@ -239,7 +239,7 @@ app.post("/send-message", async (req, res) => {
         // ?? STABLE DIF PROVIDER{
         const engineId = "stable-diffusion-v1-5";
 
-        /* const [width, height] = selectedImageSize.split("x").map(Number); */
+        const [width, height] = selectedImageSize.split("x").map(Number);
 
         const imageResponse = await fetch(
           `${stabilityApiHost}/v1/generation/${stabilityEngineId}/text-to-image`,
@@ -253,14 +253,14 @@ app.post("/send-message", async (req, res) => {
             body: JSON.stringify({
               text_prompts: [
                 {
-                  text: "A lighthouse on a cliff",
+                  text: userPrompt.content,
                   weight: 0.5,
                 },
               ],
               cfg_scale: 7,
               clip_guidance_preset: "FAST_BLUE",
-              height: 512,
-              width: 512,
+              height: height,
+              width: width,
               samples: 1,
               steps: 30,
             }),
