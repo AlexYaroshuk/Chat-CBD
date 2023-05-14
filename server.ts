@@ -88,7 +88,7 @@ async function uploadImageToFirebase(imageInput: string | Buffer) {
         .toString()
         .replace(/^data:image\/\w+;base64,/, "");
       buffer = Buffer.from(base64Data, "base64");
-      const match = imageInput.toString().match(/data:image\/(.*);base64/i);
+      const match = base64Data.match(/data:image\/(.*);base64/i);
       fileExtension = match ? match[1] : "png"; // default to png if we can't determine the file type
       contentType = `image/${fileExtension}`;
     }
@@ -287,7 +287,8 @@ app.post("/send-message", async (req, res) => {
         for (const [index, image] of responseJSON.artifacts.entries()) {
           const imageBuffer = Buffer.from(image.base64, "base64");
           const imageName = `v1_txt2img_${index}.png`;
-          const uploadedImageUrl = await uploadImageToFirebase(imageBuffer);
+          const uploadedImageUrl = await uploadImageToFirebase(image.base64);
+
           uploadedImageUrls.push(uploadedImageUrl as string);
           console.log("Buffer length:", imageBuffer.length);
           console.log("base64 string length:", image.base64.length);
