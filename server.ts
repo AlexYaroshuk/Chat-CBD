@@ -289,6 +289,9 @@ app.post("/send-message", async (req, res) => {
           const imageName = `v1_txt2img_${index}.png`;
           const uploadedImageUrl = await uploadImageToFirebase(imageBuffer);
           uploadedImageUrls.push(uploadedImageUrl as string);
+          console.log("Buffer length:", imageBuffer.length);
+          console.log("base64 string length:", image.base64.length);
+          console.log("Firebase image URL:", uploadedImageUrl);
         }
 
         newMessage = {
