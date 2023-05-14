@@ -4,17 +4,19 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "start": "node server/server.js",
+    "build": "tsc",
+    "start": "node dist/server.js",
     "serve-client": "cp -R client/ dist/"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/node-fetch": "^2.6.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
-    "firebase-admin": "^11.7.0",
+    "firebase-admin": "^11.8.0",
     "fs": "^0.0.1-security",
     "nodemon": "^2.0.20",
     "openai": "^3.2.1",
@@ -22,6 +24,10 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "@types/express": "^4.17.17"
+    "@types/cors": "^2.8.13",
+    "@types/dotenv": "^8.2.0",
+    "@types/express": "^4.17.17",
+    "@types/uuid": "^9.0.1",
+    "typescript": "^5.0.4"
   }
 }

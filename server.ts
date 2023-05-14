@@ -1,14 +1,17 @@
 import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
-import { Configuration, OpenAIApi } from "openai";
-import { createRequire } from "module";
 
-const require = createRequire(import.meta.url);
-const admin = require("firebase-admin");
+import * as dotenv from "dotenv";
+import admin from "firebase-admin";
+import * as openaiPackage from "openai";
 
-import fetch from "node-fetch";
-import FormData from "form-data";
+import cors, { CorsOptions } from "cors";
+
+const { Configuration } = openaiPackage;
+
+import * as https from "https";
+
+import fetch, { RequestInfo } from "node-fetch";
+
 import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 
@@ -25,54 +28,86 @@ dotenv.config();
 
 const app = express();
 
+//// * PROVIDERS SETUP
+// ? OPENAI SETUP
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
+const openai = new openaiPackage.OpenAIApi(configuration);
 
-const openai = new OpenAIApi(configuration);
+// ? STABILITY SETUP
+const stabilityEngineId = "stable-diffusion-v1-5";
+const stabilityApiHost = process.env.API_HOST ?? "https://api.stability.ai";
+const stabilityApiKey = process.env.STABILITY_API_KEY;
+//// ?*
 
-const allowedOrigins = ["https://chat-cbd.vercel.app"];
+const allowedOrigins = ["https://chat-cbd.vercel.app/"];
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+const corsOptions: CorsOptions = {
+  origin: (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void
+  ) => {
+    if (origin && allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      callback(new Error("Not allowed by CORS"), false);
     }
   },
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
+
 app.use(express.json());
 
-async function uploadImageToFirebase(imageUrl) {
+async function uploadImageToFirebase(imageInput: string | Buffer) {
   try {
-    const response = await fetch(imageUrl);
-    const buffer = await response.buffer();
+    let buffer: Buffer;
+    let contentType: string | null;
     const uniqueId = uuidv4();
-    const fileExtension = imageUrl.split(".").pop().split("?")[0];
+    let fileExtension: string;
+
+    if (
+      typeof imageInput === "string" &&
+      (imageInput.startsWith("http://") || imageInput.startsWith("https://"))
+    ) {
+      // Image input is a URL
+      const response = await fetch(imageInput);
+      buffer = await response.buffer();
+      contentType = response.headers.get("content-type") || "image/png";
+      fileExtension = imageInput.split(".").pop()?.split("?")[0] || "png";
+    } else {
+      // Image input is a base64 string
+      const base64Data = imageInput
+        .toString()
+        .replace(/^data:image\/\w+;base64,/, "");
+      buffer = Buffer.from(base64Data, "base64");
+      const match = base64Data.match(/data:image\/(.*);base64/i);
+      fileExtension = match ? match[1] : "png"; // default to png if we can't determine the file type
+      contentType = `image/${fileExtension}`;
+    }
+
     const filename = `${uniqueId}.${fileExtension}`;
 
     const file = admin.storage().bucket().file(filename);
     const writeStream = file.createWriteStream({
       metadata: {
-        contentType: response.headers.get("content-type"),
+        contentType: contentType,
       },
     });
 
     const uploadPromise = new Promise((resolve, reject) => {
-      writeStream.on("error", (error) => reject(error));
+      writeStream.on("error", (error: any) => reject(error));
       writeStream.on("finish", () => {
         file.getSignedUrl(
           {
             action: "read",
             expires: "03-17-2025",
           },
-          (error, url) => {
+          (error: any, url: unknown) => {
             if (error) {
               reject(error);
             } else {
@@ -90,6 +125,12 @@ async function uploadImageToFirebase(imageUrl) {
       throw error;
     });
 
+    if (uploadedImageUrl === undefined) {
+      console.error("uploadedImageUrl is undefined");
+    } else {
+      console.log("uploadedImageUrl:", uploadedImageUrl);
+    }
+
     return uploadedImageUrl;
   } catch (error) {
     console.error("Error uploading image:", error);
@@ -99,8 +140,8 @@ async function uploadImageToFirebase(imageUrl) {
 
 const PORT = process.env.PORT || 5000;
 
-function preprocessChatHistory(messages) {
-  return messages.map((message) => {
+function preprocessChatHistory(messages: any[]) {
+  return messages.map((message: { type: string; role: any; content: any }) => {
     // Check if the message is an image
     const isImage = message.type === "image";
 
@@ -115,8 +156,14 @@ function preprocessChatHistory(messages) {
 app.post("/send-message", async (req, res) => {
   console.log("body received", req.body);
   try {
-    const { userPrompt, type, selectedImageSize, activeConversation, userId } =
-      req.body;
+    const {
+      userPrompt,
+      type,
+      selectedImageSize,
+      selectedImageProvider,
+      activeConversation,
+      userId,
+    } = req.body;
     console.log("body received", req.body);
 
     let conversation = null;
@@ -156,31 +203,113 @@ app.post("/send-message", async (req, res) => {
 
     // ! image type
     if (type === "image") {
-      const imageResponse = await openai.createImage({
-        prompt: userPrompt.content,
-        n: 1,
-        size: selectedImageSize,
-        response_format: "url",
-      });
+      // ?? OPENAI PROVIDER
+      if (selectedImageProvider === "DALL-E") {
+        const imageResponse = await openai.createImage({
+          prompt: userPrompt.content,
+          n: 1,
+          size: selectedImageSize,
+          response_format: "url",
+        });
 
-      const imageUrl = imageResponse.data.data[0].url;
-      const uploadedImageUrl = await uploadImageToFirebase(imageUrl);
+        const imageUrl = imageResponse.data.data[0].url;
+        const uploadedImageUrl = await uploadImageToFirebase(
+          imageUrl as string
+        );
 
-      newMessage = {
-        role: "system",
-        content: "",
-        images: [uploadedImageUrl],
-        type: "image",
-      };
+        newMessage = {
+          role: "system",
+          content: "",
+          images: [uploadedImageUrl],
+          type: "image",
+        };
 
-      console.log("request:", imageResponse);
-      console.log("image size rec:", selectedImageSize);
+        console.log("request:", imageResponse);
+        console.log("image size rec:", selectedImageSize);
 
-      res.status(200).send({
-        bot: "",
-        type: "image",
-        images: [uploadedImageUrl],
-      });
+        res.status(200).send({
+          bot: "",
+          type: "image",
+          images: [uploadedImageUrl],
+        });
+      } else {
+        // ?? STABLE DIF PROVIDER{
+        const engineId = "stable-diffusion-v1-5";
+
+        const [width, height] = selectedImageSize.split("x").map(Number);
+
+        const imageResponse = await fetch(
+          `${stabilityApiHost}/v1/generation/${stabilityEngineId}/text-to-image`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${stabilityApiKey}`,
+            },
+            body: JSON.stringify({
+              text_prompts: [
+                {
+                  text: userPrompt.content,
+                  weight: 0.5,
+                },
+              ],
+              cfg_scale: 7,
+              clip_guidance_preset: "FAST_BLUE",
+              height: height,
+              width: width,
+              samples: 1,
+              steps: 30,
+            }),
+          }
+        );
+
+        if (!imageResponse.ok) {
+          throw new Error(`Non-200 response: ${await imageResponse.text()}`);
+        }
+
+        interface GenerationResponse {
+          artifacts: Array<{
+            base64: string;
+            seed: number;
+            finishReason: string;
+          }>;
+        }
+
+        const responseJSON = (await imageResponse.json()) as GenerationResponse;
+        console.log("🚀 ~ file: server.ts:283 ~ responseJSON:", responseJSON);
+
+        const uploadedImageUrls: string[] = [];
+
+        for (const [index, image] of responseJSON.artifacts.entries()) {
+          const imageBuffer = Buffer.from(image.base64, "base64");
+          const imageName = `v1_txt2img_${index}.png`;
+          const uploadedImageUrl = await uploadImageToFirebase(image.base64);
+
+          uploadedImageUrls.push(uploadedImageUrl as string);
+          console.log("Buffer length:", imageBuffer.length);
+          console.log("base64 string length:", image.base64.length);
+          console.log("Firebase image URL:", uploadedImageUrl);
+        }
+
+        newMessage = {
+          role: "system",
+          content: "",
+          images: uploadedImageUrls,
+          type: "image",
+        };
+
+        console.log("uploadedImageUrls:", uploadedImageUrls);
+
+        console.log("request:", imageResponse);
+        console.log("image size rec:", selectedImageSize);
+
+        res.status(200).send({
+          bot: "",
+          type: "image",
+          images: uploadedImageUrls,
+        });
+      }
     }
     // ! text type
     else {
@@ -196,7 +325,7 @@ app.post("/send-message", async (req, res) => {
 
       console.log("OpenAI API response:", response);
 
-      const botResponse = response.data.choices[0].message.content.trim();
+      const botResponse = response.data.choices[0].message?.content.trim();
 
       newMessage = {
         role: "system",
@@ -218,7 +347,7 @@ app.post("/send-message", async (req, res) => {
       { id: activeConversation, messages: updatedMessagesWithResponse },
       userId
     );
-  } catch (error) {
+  } catch (error: any) {
     const { response } = error;
     console.log("🚀 ~ app.post ~ error:", error);
     let errorMessage = "An unknown error occurred";
@@ -250,7 +379,10 @@ app.post("/send-message", async (req, res) => {
   });
 }); */
 
-async function getConversationFromDatabase(activeConversation, userId) {
+async function getConversationFromDatabase(
+  activeConversation: any,
+  userId: any
+) {
   try {
     const db = admin.firestore();
     const conversationsRef = db.collection(`users/${userId}/conversations`);
@@ -269,7 +401,10 @@ async function getConversationFromDatabase(activeConversation, userId) {
   }
 }
 
-async function saveConversationToFirebase(conversation, userId) {
+async function saveConversationToFirebase(
+  conversation: { id: any; messages?: any[] | never[] },
+  userId: any
+) {
   /* console.log("Saving conversation:", conversation); */
   try {
     const db = admin.firestore();
@@ -295,8 +430,6 @@ app.listen(process.env.PORT || 5000, () =>
 app.get("/ping", (req, res) => {
   res.status(200).send("pong");
 });
-
-const https = require("https");
 
 const options = {
   hostname: "chat-cbd.onrender.com",
