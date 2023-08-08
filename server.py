@@ -30,20 +30,20 @@ stability_engine_id = "stable-diffusion-v1-5"
 stability_api_host = os.environ.get("API_HOST", "https://api.stability.ai")
 stability_api_key = os.environ.get("STABILITY_API_KEY")
 
-# allowed_origins = [
-#     "https://chat-cbd-test.vercel.app",
-#     "http://localhost:5173",
-# ]
+allowed_origins = [
+    "https://chat-cbd-test.vercel.app",
+    "http://localhost:5173",
+]
 
-# @app.after_request
-# def after_request(response):
-#     origin = request.headers.get("Origin")
-#     if origin in allowed_origins:
-#         response.headers.add("Access-Control-Allow-Origin", origin)
-#         response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-#         response.headers.add("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS")
-#         response.headers.add("Access-Control-Allow-Credentials", "true")
-#     return response
+@app.after_request
+def after_request(response):
+    origin = request.headers.get("Origin")
+    if origin in allowed_origins:
+        response.headers.add("Access-Control-Allow-Origin", origin)
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS")
+        response.headers.add("Access-Control-Allow-Credentials", "true")
+    return response
 
 
 @app.route('/upload', methods=['POST'])
