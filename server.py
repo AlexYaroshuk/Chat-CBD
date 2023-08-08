@@ -34,7 +34,7 @@ allowed_origins = [
     "http://localhost:5173",
 ]
 
-cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
+cors = CORS(app, resources={r"/*": {"origins": allowed_origins, "methods": ["OPTIONS", "POST"]}})
 
 
 @app.route('/upload', methods=['POST'])
