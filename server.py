@@ -83,7 +83,15 @@ def preprocess_chat_history(messages):
         for message in messages
     ]
 
-@app.route('/send-message', methods=['POST'])
+@app.route('/send-message', methods=['OPTIONS','POST'])
+def handle_preflight():
+    response = app.make_default_options_response()  # Create an OPTIONS response
+    response.headers.add("Access-Control-Allow-Origin", "https://chat-cbd-test.vercel.app")  # Specify the allowed origin
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    response.headers.add("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS")
+    response.headers.add("Access-Control-Allow-Credentials", "true")
+    return response
+
 def send_message():
     try:
         data = request.json
