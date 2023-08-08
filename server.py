@@ -14,7 +14,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-cors = CORS(app, resources={r"/*": {"origins": allowed_origins}})
+
 
 # Firebase setup
 cred = credentials.Certificate("/etc/secrets/FIREBASE_SERVICE_ACCOUNT")
