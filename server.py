@@ -30,10 +30,10 @@ stability_engine_id = "stable-diffusion-v1-5"
 stability_api_host = os.environ.get("API_HOST", "https://api.stability.ai")
 stability_api_key = os.environ.get("STABILITY_API_KEY")
 
-allowed_origins = [
-    "https://chat-cbd-test.vercel.app",
-    "http://localhost:5173",
-]
+# allowed_origins = [
+#     "https://chat-cbd-test.vercel.app",
+#     "http://localhost:5173",
+# ]
 
 # @app.after_request
 # def after_request(response):
