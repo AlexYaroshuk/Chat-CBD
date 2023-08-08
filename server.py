@@ -11,9 +11,10 @@ import base64
 from uuid import uuid4
 
 from flask import Flask, request, jsonify
-from flask_cors import cross_origin
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 # Firebase setup
 cred = credentials.Certificate("/etc/secrets/FIREBASE_SERVICE_ACCOUNT")
@@ -32,6 +33,9 @@ allowed_origins = [
     "https://chat-cbd-test.vercel.app",
     "http://localhost:5173",
 ]
+
+cors = CORS(app, resources={r"/*": {"origins": allowed_origins, "methods": ["OPTIONS", "GET", "POST"]}})
+
 
 @app.route('/upload', methods=['POST'])
 def upload_image_to_firebase():
@@ -71,7 +75,6 @@ def preprocess_chat_history(messages):
     ]
 
 @app.route('/send-message', methods=['POST'])
-@cross_origin(origin=allowed_origins, methods=["OPTIONS", "POST"])
 def send_message():
     try:
         data = request.json
