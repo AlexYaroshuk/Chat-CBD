@@ -38,7 +38,7 @@ allowed_origins = [
 @app.after_request
 def after_request(response):
     origin = request.headers.get("Origin")
-    if origin in allowed_origins:
+    if origin in allowed_origins or origin.startswith("https://chat-cbd-test.vercel.app"):
         response.headers.add("Access-Control-Allow-Origin", origin)
         response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
         response.headers.add("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS")
