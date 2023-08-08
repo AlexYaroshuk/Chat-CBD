@@ -90,7 +90,7 @@ def handle_preflight():
     response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
     response.headers.add("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS")
     response.headers.add("Access-Control-Allow-Credentials", "true")
-    return response
+    return response, 200
 
 def send_message():
     try:
