@@ -14,6 +14,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 
 # Firebase setup
@@ -34,7 +35,15 @@ allowed_origins = [
     "http://localhost:5173",
 ]
 
-cors = CORS(app, resources={r"/*": {"origins": allowed_origins, "methods": ["OPTIONS", "POST"]}})
+@app.after_request
+def after_request(response):
+    origin = request.headers.get("Origin")
+    if origin in allowed_origins:
+        response.headers.add("Access-Control-Allow-Origin", origin)
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS")
+        response.headers.add("Access-Control-Allow-Credentials", "true")
+    return response
 
 
 @app.route('/upload', methods=['POST'])
