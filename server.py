@@ -92,135 +92,144 @@ def handle_preflight():
     response.headers.add("Access-Control-Allow-Credentials", "true")
     return response, 200
 
+@app.route('/send-message', methods=['OPTIONS', 'POST'])
 def send_message():
-    try:
-        data = request.json
-        user_prompt = data.get("userPrompt")
-        message_type = data.get("type")
-        selected_image_size = data.get("selectedImageSize")
-        selected_image_provider = data.get("selectedImageProvider")
-        active_conversation = data.get("activeConversation")
-        user_id = data.get("userId")
+    if request.method == 'OPTIONS':
+        response = app.make_default_options_response()  # Create an OPTIONS response
+        response.headers.add("Access-Control-Allow-Origin", "https://chat-cbd-test.vercel.app")  # Specify the allowed origin
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS")
+        response.headers.add("Access-Control-Allow-Credentials", "true")
+        return response, 200
+    elif request.method == 'POST':
+        try:
+            data = request.json
+            user_prompt = data.get("userPrompt")
+            message_type = data.get("type")
+            selected_image_size = data.get("selectedImageSize")
+            selected_image_provider = data.get("selectedImageProvider")
+            active_conversation = data.get("activeConversation")
+            user_id = data.get("userId")
 
-        conversation = None
+            conversation = None
 
-        if active_conversation:
-            conversation = get_conversation_from_database(active_conversation, user_id)
+            if active_conversation:
+                conversation = get_conversation_from_database(active_conversation, user_id)
 
-        def generate_unique_id():
-            timestamp = int(time.time() * 1000)
-            random_number = random.random()
-            hexadecimal_string = hex(int(random_number * 16 ** 6))[2:]
-            return f"id-{timestamp}-{hexadecimal_string}"
+            def generate_unique_id():
+                timestamp = int(time.time() * 1000)
+                random_number = random.random()
+                hexadecimal_string = hex(int(random_number * 16 ** 6))[2:]
+                return f"id-{timestamp}-{hexadecimal_string}"
 
-        if not conversation or conversation["id"] == "null":
-            new_id = generate_unique_id()
-            conversation = {"id": new_id, "messages": []}
-            save_conversation_to_firebase(conversation, user_id)
+            if not conversation or conversation["id"] == "null":
+                new_id = generate_unique_id()
+                conversation = {"id": new_id, "messages": []}
+                save_conversation_to_firebase(conversation, user_id)
 
-        updated_messages = conversation["messages"] + [user_prompt]
+            updated_messages = conversation["messages"] + [user_prompt]
 
-        preprocessed_messages = preprocess_chat_history(updated_messages)
+            preprocessed_messages = preprocess_chat_history(updated_messages)
 
-        new_message = {}
+            new_message = {}
 
-        if message_type == "image":
-            if selected_image_provider == "DALL-E":
-                image_response = openai.Image.create(
-                    prompt=user_prompt["content"],
-                    n=1,
-                    size=selected_image_size,
-                    response_format="url"
-                )
+            if message_type == "image":
+                if selected_image_provider == "DALL-E":
+                    image_response = openai.Image.create(
+                        prompt=user_prompt["content"],
+                        n=1,
+                        size=selected_image_size,
+                        response_format="url"
+                    )
 
-                image_url = image_response.data[0]["url"]
-                uploaded_image_url = upload_image_to_firebase(image_url)
+                    image_url = image_response.data[0]["url"]
+                    uploaded_image_url = upload_image_to_firebase(image_url)
 
-                new_message = {
-                    "role": "system",
-                    "content": "",
-                    "images": [uploaded_image_url],
-                    "type": "image"
-                }
-
-                return jsonify({
-                    "bot": "",
-                    "type": "image",
-                    "images": [uploaded_image_url]
-                }), 200
-            else:
-                # STABLE DIF PROVIDER
-                engine_id = "stable-diffusion-v1-5"
-                width, height = map(int, selected_image_size.split("x"))
-
-                image_response = requests.post(
-                    f"{stability_api_host}/v1/generation/{stability_engine_id}/text-to-image",
-                    headers={
-                        "Content-Type": "application/json",
-                        "Accept": "application/json",
-                        "Authorization": f"Bearer {stability_api_key}"
-                    },
-                    json={
-                        "text_prompts": [{"text": user_prompt["content"], "weight": 0.5}],
-                        "cfg_scale": 7,
-                        "clip_guidance_preset": "FAST_BLUE",
-                        "height": height,
-                        "width": width,
-                        "samples": 1,
-                        "steps": 30
+                    new_message = {
+                        "role": "system",
+                        "content": "",
+                        "images": [uploaded_image_url],
+                        "type": "image"
                     }
+
+                    return jsonify({
+                        "bot": "",
+                        "type": "image",
+                        "images": [uploaded_image_url]
+                    }), 200
+                else:
+                    # STABLE DIF PROVIDER
+                    engine_id = "stable-diffusion-v1-5"
+                    width, height = map(int, selected_image_size.split("x"))
+
+                    image_response = requests.post(
+                        f"{stability_api_host}/v1/generation/{stability_engine_id}/text-to-image",
+                        headers={
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                            "Authorization": f"Bearer {stability_api_key}"
+                        },
+                        json={
+                            "text_prompts": [{"text": user_prompt["content"], "weight": 0.5}],
+                            "cfg_scale": 7,
+                            "clip_guidance_preset": "FAST_BLUE",
+                            "height": height,
+                            "width": width,
+                            "samples": 1,
+                            "steps": 30
+                        }
+                    )
+
+                    if not image_response.ok:
+                        raise Exception(f"Non-200 response: {image_response.text}")
+
+                    response_json = image_response.json()
+                    uploaded_image_urls = []
+
+                    for index, image in enumerate(response_json["artifacts"]):
+                        image_base64 = image["base64"]
+                        uploaded_image_url = upload_image_to_firebase(image_base64)
+                        uploaded_image_urls.append(uploaded_image_url)
+                    
+                    new_message = {
+                        "role": "system",
+                        "content": "",
+                        "images": uploaded_image_urls,
+                        "type": "image"
+                    }
+
+                    return jsonify({
+                        "bot": "",
+                        "type": "image",
+                        "images": uploaded_image_urls
+                    }), 200
+            else:
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=preprocessed_messages,
+                    temperature=0.5,
+                    max_tokens=2000,
+                    top_p=1,
+                    frequency_penalty=0.5,
+                    presence_penalty=0
                 )
 
-                if not image_response.ok:
-                    raise Exception(f"Non-200 response: {image_response.text}")
+                bot_response = response.choices[0].message["content"].strip()
 
-                response_json = image_response.json()
-                uploaded_image_urls = []
-
-                for index, image in enumerate(response_json["artifacts"]):
-                    image_base64 = image["base64"]
-                    uploaded_image_url = upload_image_to_firebase(image_base64)
-                    uploaded_image_urls.append(uploaded_image_url)
-                
                 new_message = {
                     "role": "system",
-                    "content": "",
-                    "images": uploaded_image_urls,
-                    "type": "image"
+                    "content": bot_response,
+                    "type": "text"
                 }
 
                 return jsonify({
-                    "bot": "",
-                    "type": "image",
-                    "images": uploaded_image_urls
+                    "bot": bot_response,
+                    "type": "text"
                 }), 200
-        else:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=preprocessed_messages,
-                temperature=0.5,
-                max_tokens=2000,
-                top_p=1,
-                frequency_penalty=0.5,
-                presence_penalty=0
-            )
 
-            bot_response = response.choices[0].message["content"].strip()
-
-            new_message = {
-                "role": "system",
-                "content": bot_response,
-                "type": "text"
-            }
-
-            return jsonify({
-                "bot": bot_response,
-                "type": "text"
-            }), 200
-
-    except Exception as e:
-        print("Error:", e)
-        return jsonify({"error": str(e)}), 500
+        except Exception as e:
+            print("Error:", e)
+            return jsonify({"error": str(e)}), 500
       
 def get_conversation_from_database(active_conversation, user_id):
     try:
